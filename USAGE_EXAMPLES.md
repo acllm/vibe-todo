@@ -1,0 +1,128 @@
+# 多后端使用示例
+
+## 场景 1: 本地开发，使用 SQLite
+
+```bash
+# 默认配置，无需额外设置
+vibe add "学习 Python" -p high
+vibe list
+```
+
+## 场景 2: 个人知识管理，同步到 Notion
+
+### 步骤 1: 准备 Notion 数据库
+
+在 Notion 中创建一个数据库模板：
+
+| Name | Status | Priority | Due Date | Tags | Time Spent |
+|------|--------|----------|----------|------|------------|
+| Title | Select | Select | Date | Multi-select | Number |
+
+### 步骤 2: 获取凭证
+
+```bash
+# Integration Token: secret_xxx
+# Database ID: xxx (从 URL 中获取)
+```
+
+### 步骤 3: 配置并使用
+
+```bash
+# 配置 Notion 后端
+vibe config set-backend notion \
+  --token secret_xxx \
+  --database xxx
+
+# 添加任务（会自动同步到 Notion）
+vibe add "阅读《深入理解计算机系统》" \
+  -d "CSAPP 第3章" \
+  -p high \
+  --due 2025-12-25 \
+  -t "学习,计算机" \
+  --project "技术阅读"
+
+# 查看任务（从 Notion 读取）
+vibe list
+
+# 在 Notion 中修改任务后，CLI 也能看到更新
+vibe show 1
+```
+
+### 优势
+- ✅ 在 Notion 中可视化管理任务
+- ✅ 利用 Notion 的笔记和关联功能
+- ✅ 可以在手机上使用 Notion App 查看
+
+## 场景 3: 团队协作，使用 Microsoft To Do
+
+### 步骤 1: 注册 Azure 应用
+
+1. 访问 https://portal.azure.com
+2. 创建应用，获取 Client ID
+3. 配置权限：Tasks.ReadWrite
+
+### 步骤 2: 配置并认证
+
+```bash
+# 配置 Microsoft 后端
+vibe config set-backend microsoft --client-id xxx
+
+# 首次使用会弹出浏览器进行认证
+vibe list
+
+# 添加任务（同步到 Microsoft To Do）
+vibe add "准备季度总结" \
+  -p urgent \
+  --due 2025-11-30 \
+  -t "工作,汇报"
+
+# 在 Microsoft To Do App 中也能看到
+```
+
+### 优势
+- ✅ 与 Outlook、Teams 集成
+- ✅ 跨平台同步（Windows、iOS、Android、Web）
+- ✅ 企业环境友好
+
+## 场景 4: 混合使用
+
+```bash
+# 开发任务用 SQLite（快速、离线）
+vibe config set-backend sqlite
+vibe add "修复 Bug #123" -p high
+
+# 个人学习计划用 Notion（笔记丰富）
+vibe config set-backend notion --token xxx --database xxx
+vibe add "学习 Rust" --project "技术学习"
+
+# 工作任务用 Microsoft（团队协作）
+vibe config set-backend microsoft --client-id xxx
+vibe add "项目评审" -p urgent
+```
+
+## 数据迁移
+
+### 从 SQLite 导出到 Notion
+
+```bash
+# TODO: 实现数据迁移工具
+vibe migrate --from sqlite --to notion \
+  --token xxx --database xxx
+```
+
+## 注意事项
+
+### Notion
+- ⚠️ API 限制：每秒 3 次请求
+- ⚠️ Database 需要预先创建好属性
+- ⚠️ Token 需要妥善保管
+
+### Microsoft To Do  
+- ⚠️ 首次使用需要浏览器认证
+- ⚠️ Token 有效期约 1 小时，自动刷新
+- ⚠️ 不支持工时字段（这是 Microsoft To Do 的限制）
+
+### 通用
+- ⚠️ 网络问题会导致操作失败
+- ⚠️ 建议定期备份重要数据
+- ⚠️ 不同后端的 task_id 格式不同，切换后端会丢失 ID 映射

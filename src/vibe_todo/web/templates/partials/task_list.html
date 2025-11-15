@@ -1,0 +1,68 @@
+{% for task in tasks %}
+<article class="task-card">
+    <div class="task-header">
+        <h3 class="task-title">
+            <span class="task-status status-{{ task.status.value }}">
+                {% if task.status.value == "todo" %}待处理
+                {% elif task.status.value == "in_progress" %}进行中
+                {% else %}已完成{% endif %}
+            </span>
+            {{ task.title }}
+        </h3>
+        {% if task.time_spent > 0 %}
+        <span class="time-badge">⏱️ {{ task.format_time_spent() }}</span>
+        {% endif %}
+    </div>
+    
+    {% if task.description %}
+    <p class="task-description">{{ task.description }}</p>
+    {% endif %}
+    
+    <div class="task-actions">
+        {% if task.status.value != "done" %}
+        <button 
+            hx-post="/tasks/{{ task.id }}/done" 
+            hx-target="#task-list"
+            class="secondary">
+            ✓ 完成
+        </button>
+        {% endif %}
+        
+        {% if task.status.value == "todo" %}
+        <button 
+            hx-post="/tasks/{{ task.id }}/start" 
+            hx-target="#task-list"
+            class="contrast">
+            ▶ 开始
+        </button>
+        {% endif %}
+        
+        <button 
+            hx-delete="/tasks/{{ task.id }}" 
+            hx-target="#task-list"
+            hx-confirm="确认删除此任务？"
+            class="secondary outline">
+            🗑️ 删除
+        </button>
+        
+        <form 
+            hx-post="/tasks/{{ task.id }}/time" 
+            hx-target="#task-list"
+            style="display: inline-flex; gap: 0.5rem; margin: 0;">
+            <input 
+                type="number" 
+                name="minutes" 
+                placeholder="分钟" 
+                min="1" 
+                style="width: 80px; margin: 0;">
+            <button type="submit" class="outline">+ 工时</button>
+        </form>
+    </div>
+</article>
+{% endfor %}
+
+{% if not tasks %}
+<article>
+    <p style="text-align: center; color: var(--muted-color);">暂无任务，添加一个开始吧！</p>
+</article>
+{% endif %}

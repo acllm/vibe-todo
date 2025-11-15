@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vibe Todo - 任务管理</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    <style>
+        :root {
+            --spacing: 1rem;
+        }
+        
+        .task-card {
+            margin-bottom: 1rem;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: var(--card-background-color);
+        }
+        
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .task-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .task-status {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+        
+        .status-todo {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+        
+        .status-in_progress {
+            background-color: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .status-done {
+            background-color: #e8f5e9;
+            color: #388e3c;
+            text-decoration: line-through;
+        }
+        
+        .task-description {
+            color: var(--muted-color);
+            margin: 0.5rem 0;
+        }
+        
+        .task-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        
+        .task-actions button {
+            padding: 0.25rem 0.75rem;
+            font-size: 0.85rem;
+            margin: 0;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            background-color: var(--card-background-color);
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin: 0;
+        }
+        
+        .stat-label {
+            color: var(--muted-color);
+            font-size: 0.9rem;
+            margin-top: 0.25rem;
+        }
+        
+        .filter-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--muted-border-color);
+            padding-bottom: 0.5rem;
+        }
+        
+        .filter-tabs button {
+            background: none;
+            border: none;
+            padding: 0.5rem 1rem;
+            cursor: pointer;
+            color: var(--muted-color);
+            font-weight: 500;
+        }
+        
+        .filter-tabs button:hover {
+            color: var(--primary);
+        }
+        
+        .filter-tabs button.active {
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary);
+        }
+        
+        .time-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background-color: var(--code-background-color);
+            border-radius: 0.25rem;
+            font-size: 0.85rem;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <header style="margin-top: 2rem; margin-bottom: 2rem;">
+            <h1>📝 Vibe Todo</h1>
+            <p>简洁实用的任务和工时管理工具</p>
+        </header>
+
+        <!-- 统计信息 -->
+        <section class="stats-grid">
+            <div class="stat-card">
+                <p class="stat-value">{{ stats.total }}</p>
+                <p class="stat-label">总任务</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-value">{{ stats.todo }}</p>
+                <p class="stat-label">待处理</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-value">{{ stats.in_progress }}</p>
+                <p class="stat-label">进行中</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-value">{{ stats.done }}</p>
+                <p class="stat-label">已完成</p>
+            </div>
+            <div class="stat-card">
+                <p class="stat-value">{{ "%.1f"|format(stats.total_time_hours) }}</p>
+                <p class="stat-label">总工时（小时）</p>
+            </div>
+        </section>
+
+        <!-- 添加任务表单 -->
+        <section>
+            <h2>添加新任务</h2>
+            <form hx-post="/tasks" hx-target="#task-list" hx-swap="innerHTML">
+                <input type="text" name="title" placeholder="任务标题" required>
+                <textarea name="description" placeholder="任务描述（可选）" rows="2"></textarea>
+                <button type="submit">添加任务</button>
+            </form>
+        </section>
+
+        <!-- 筛选标签 -->
+        <div class="filter-tabs">
+            <button hx-get="/tasks/filter/all" hx-target="#task-list" class="active">全部</button>
+            <button hx-get="/tasks/filter/todo" hx-target="#task-list">待处理</button>
+            <button hx-get="/tasks/filter/in_progress" hx-target="#task-list">进行中</button>
+            <button hx-get="/tasks/filter/done" hx-target="#task-list">已完成</button>
+        </div>
+
+        <!-- 任务列表 -->
+        <section id="task-list">
+            {% include "partials/task_list.html" %}
+        </section>
+    </main>
+</body>
+</html>

@@ -1,0 +1,7 @@
+include README.md
+include LICENSE
+include ARCHITECTURE.md
+include BACKEND_DESIGN.md
+include USAGE_EXAMPLES.md
+recursive-include src/vibe_todo/web/templates *.html
+recursive-include src/vibe_todo/web/static *
