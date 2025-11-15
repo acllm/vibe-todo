@@ -186,6 +186,80 @@ ruff check .
 - `web/`: Web 接口（FastAPI + HTMX）
 - `cli/`: 命令行接口（Click）
 
-## License
+## 📊 项目状态
 
-MIT
+**当前版本**: v0.1.0  
+**开发状态**: ✅ 稳定 (Stable)  
+**测试覆盖**: 核心功能已测试
+
+### 已实现功能
+
+- ✅ 完整的任务管理（CRUD）
+- ✅ 优先级和截止日期
+- ✅ 标签和项目组织
+- ✅ 工时追踪
+- ✅ Rich CLI 终端界面
+- ✅ Web 界面 (HTMX + PicoCSS)
+- ✅ 多后端支持 (SQLite / Notion / Microsoft To Do)
+- ✅ 后端切换和配置管理
+
+### 路线图
+
+查看完整的技术架构和未来规划：[ARCHITECTURE.md](ARCHITECTURE.md)
+
+#### 近期计划 (v0.2.0)
+- 🔄 数据导出/导入 (JSON/CSV)
+- 🔄 批量操作
+- 🔄 全文搜索和高级过滤
+
+#### 中期规划 (v0.3.0 - v0.4.0)
+- 💡 交互式任务编辑
+- 💡 看板和日历视图
+- 💡 深色模式
+- 🔮 Google Tasks / Todoist 集成
+
+#### 长期愿景 (v0.5.0+)
+- 🌟 AI 辅助（自动分类、优先级建议）
+- 🌟 协作功能（多用户、评论）
+- 🌟 实时同步和离线模式
+
+## 🤝 贡献
+
+欢迎贡献代码、报告问题或提出建议！
+
+### 如何贡献
+
+1. Fork 本仓库
+2. 创建特性分支 (`git checkout -b feature/amazing-feature`)
+3. 提交改动 (`git commit -m 'Add amazing feature'`)
+4. 推送到分支 (`git push origin feature/amazing-feature`)
+5. 开启 Pull Request
+
+### 开发指南
+
+```bash
+# 克隆仓库
+git clone https://github.com/yourusername/vibe-todo.git
+cd vibe-todo
+
+# 创建虚拟环境
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 安装开发依赖
+uv pip install -e ".[dev,all]"
+
+# 运行测试
+pytest
+
+# 代码检查
+ruff check .
+```
+
+### 行为准则
+
+请遵循友好、尊重、包容的开源社区准则。
+
+## 📄 License
+
+MIT License - 详见 [LICENSE](LICENSE) 文件
