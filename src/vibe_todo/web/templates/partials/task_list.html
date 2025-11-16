@@ -116,6 +116,43 @@
         </button>
         {% endif %}
         
+        <!-- 快捷工时按钮 -->
+        <div class="quick-time-buttons">
+            <button 
+                hx-post="/tasks/{{ task.id }}/time" 
+                hx-target="#task-list"
+                hx-vals='{"minutes": 15}'
+                class="outline secondary"
+                title="添加 15 分钟">
+                +15min
+            </button>
+            <button 
+                hx-post="/tasks/{{ task.id }}/time" 
+                hx-target="#task-list"
+                hx-vals='{"minutes": 30}'
+                class="outline secondary"
+                title="添加 30 分钟">
+                +30min
+            </button>
+            <button 
+                hx-post="/tasks/{{ task.id }}/time" 
+                hx-target="#task-list"
+                hx-vals='{"minutes": 60}'
+                class="outline secondary"
+                title="添加 1 小时">
+                +1h
+            </button>
+            <button 
+                hx-post="/tasks/{{ task.id }}/time" 
+                hx-target="#task-list"
+                hx-vals='{"minutes": 120}'
+                class="outline secondary"
+                title="添加 2 小时">
+                +2h
+            </button>
+        </div>
+        
+        <!-- 自定义工时输入 -->
         <form 
             hx-post="/tasks/{{ task.id }}/time" 
             hx-target="#task-list"
@@ -123,10 +160,10 @@
             <input 
                 type="number" 
                 name="minutes" 
-                placeholder="分钟" 
+                placeholder="自定义分钟" 
                 min="1"
                 required>
-            <button type="submit" class="outline">⏱️ +工时</button>
+            <button type="submit" class="outline">⏱️ 添加</button>
         </form>
         
         <button 

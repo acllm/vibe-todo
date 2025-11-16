@@ -1,4 +1,89 @@
-# 多后端使用示例
+# Vibe Todo 使用示例
+
+## 基础用法
+
+### 添加和管理任务
+
+```bash
+# 添加简单任务
+vibe add "学习 Python"
+
+# 添加完整信息的任务
+vibe add "学习 Python 高级特性" \
+  -d "装饰器、生成器、上下文管理器" \
+  -p high \
+  --due 2025-12-01 \
+  -t "学习,Python" \
+  --project "技术提升"
+
+# 查看所有任务
+vibe list
+
+# 查看特定状态的任务
+vibe list -s todo
+vibe list -s in_progress
+vibe list -s done
+
+# 查看逾期任务
+vibe list --overdue
+
+# 查看任务详情
+vibe show <task-id>
+
+# 开始任务
+vibe start <task-id>
+
+# 完成任务
+vibe done <task-id>
+
+# 删除任务
+vibe delete <task-id>
+```
+
+### 工时管理（灵活输入）
+
+```bash
+# 方式 1: 直接输入分钟数
+vibe time <task-id> 90          # 添加 90 分钟
+
+# 方式 2: 使用小时（小数）
+vibe time <task-id> 1.5h        # 添加 1.5 小时 = 90 分钟
+vibe time <task-id> 2h          # 添加 2 小时 = 120 分钟
+
+# 方式 3: 组合格式（小时+分钟）
+vibe time <task-id> 2h30m       # 添加 2 小时 30 分钟 = 150 分钟
+vibe time <task-id> 1h15m       # 添加 1 小时 15 分钟 = 75 分钟
+
+# 方式 4: 仅分钟（带单位）
+vibe time <task-id> 45m         # 添加 45 分钟
+
+# 查看统计（含总工时）
+vibe stats
+```
+
+### 实际工作流示例
+
+```bash
+# 早上开始工作
+vibe add "实现用户登录功能" -p high --project "Web 项目"
+vibe start 1
+
+# 工作 2 小时后记录
+vibe time 1 2h
+
+# 午休后继续，再工作 1.5 小时
+vibe time 1 1.5h
+
+# 完成任务
+vibe done 1
+
+# 查看今日工作统计
+vibe stats
+```
+
+---
+
+## 多后端使用场景
 
 ## 场景 1: 本地开发，使用 SQLite
 

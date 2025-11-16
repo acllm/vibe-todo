@@ -1,6 +1,8 @@
 """命令行接口 - 使用 Rich 美化输出"""
 import click
+import re
 from datetime import datetime
+from typing import Optional
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -233,11 +235,29 @@ def start(task_id: str):
 
 
 @cli.command()
-@click.argument("task_id")  # 改为字符串
-@click.argument("minutes", type=int)
-def time(task_id: str, minutes: int):
-    """为任务添加工时（分钟）"""
+@click.argument("task_id")
+@click.argument("time_input")
+def time(task_id: str, time_input: str):
+    """为任务添加工时
+    
+    支持多种格式：
+    - 数字: 90 (分钟)
+    - 小时: 1.5h, 2h
+    - 组合: 2h30m, 1h15m
+    """
     service = get_service()
+    
+    # 解析时间输入
+    minutes = parse_time_input(time_input)
+    if minutes is None:
+        console.print(f"[red]✗ 无效的时间格式: {time_input}[/red]")
+        console.print("[yellow]支持的格式: 90, 1.5h, 2h30m[/yellow]")
+        return
+    
+    if minutes <= 0:
+        console.print("[red]✗ 工时必须是正数[/red]")
+        return
+    
     task = service.add_time(task_id, minutes)
     
     if not task:
@@ -246,6 +266,45 @@ def time(task_id: str, minutes: int):
     
     console.print(f"[green]✓ 已添加 {minutes} 分钟工时到任务 #{task.id}[/green]")
     console.print(f"  [blue]总工时: {task.format_time_spent()}[/blue]")
+
+
+def parse_time_input(time_str: str) -> Optional[int]:
+    """解析时间输入，返回分钟数
+    
+    支持格式：
+    - 90 -> 90 分钟
+    - 1.5h -> 90 分钟
+    - 2h -> 120 分钟
+    - 2h30m -> 150 分钟
+    - 1h15m -> 75 分钟
+    """
+    import re
+    
+    time_str = time_str.strip().lower()
+    
+    # 格式 1: 纯数字（分钟）
+    if time_str.isdigit():
+        return int(time_str)
+    
+    # 格式 2: 小数小时 (1.5h, 2.0h)
+    match = re.match(r'^(\d+(?:\.\d+)?)\s*h$', time_str)
+    if match:
+        hours = float(match.group(1))
+        return int(hours * 60)
+    
+    # 格式 3: 小时+分钟 (2h30m, 1h15m)
+    match = re.match(r'^(\d+)\s*h\s*(\d+)\s*m$', time_str)
+    if match:
+        hours = int(match.group(1))
+        minutes = int(match.group(2))
+        return hours * 60 + minutes
+    
+    # 格式 4: 仅分钟 (30m)
+    match = re.match(r'^(\d+)\s*m$', time_str)
+    if match:
+        return int(match.group(1))
+    
+    return None
 
 
 @cli.command()
