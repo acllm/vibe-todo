@@ -6,7 +6,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from ..core import TaskService, TaskStatus
-from ..storage import TaskRepository
+from ..storage.factory import create_repository
 
 app = FastAPI(title="Vibe Todo")
 
@@ -17,7 +17,7 @@ templates = Jinja2Templates(directory=str(templates_dir))
 
 def get_service() -> TaskService:
     """获取任务服务实例"""
-    repository = TaskRepository()
+    repository = create_repository()
     return TaskService(repository)
 
 
@@ -38,11 +38,37 @@ async def index(request: Request):
 async def create_task(
     request: Request,
     title: str = Form(...),
-    description: str = Form("")
+    description: str = Form(""),
+    priority: str = Form("medium"),
+    due_date: str = Form(None),
+    tags: str = Form(""),
+    project: str = Form("")
 ):
     """创建新任务"""
+    from ..core import TaskPriority
+    from datetime import datetime
+    
     service = get_service()
-    task = service.create_task(title, description)
+    
+    # 解析截止日期
+    due_date_obj = None
+    if due_date:
+        try:
+            due_date_obj = datetime.strptime(due_date, "%Y-%m-%d")
+        except ValueError:
+            pass
+    
+    # 解析标签
+    tag_list = [t.strip() for t in tags.split(",")] if tags else []
+    
+    task = service.create_task(
+        title=title,
+        description=description,
+        priority=TaskPriority(priority),
+        due_date=due_date_obj,
+        tags=tag_list,
+        project=project if project else None
+    )
 
     # 返回任务列表片段（HTMX 会替换页面内容）
     tasks = service.list_tasks()
@@ -54,7 +80,7 @@ async def create_task(
 
 
 @app.post("/tasks/{task_id}/done", response_class=HTMLResponse)
-async def mark_done(request: Request, task_id: int):
+async def mark_done(request: Request, task_id: str):
     """标记任务为完成"""
     service = get_service()
     task = service.mark_done(task_id)
@@ -72,7 +98,7 @@ async def mark_done(request: Request, task_id: int):
 
 
 @app.post("/tasks/{task_id}/start", response_class=HTMLResponse)
-async def mark_in_progress(request: Request, task_id: int):
+async def mark_in_progress(request: Request, task_id: str):
     """标记任务为进行中"""
     service = get_service()
     task = service.mark_in_progress(task_id)
@@ -88,8 +114,29 @@ async def mark_in_progress(request: Request, task_id: int):
     )
 
 
+@app.post("/tasks/{task_id}/todo", response_class=HTMLResponse)
+async def mark_todo(request: Request, task_id: str):
+    """标记任务为待处理（暂停）"""
+    service = get_service()
+    task = service.get_task(task_id)
+    
+    if not task:
+        raise HTTPException(status_code=404, detail="任务不存在")
+    
+    from ..core import TaskStatus
+    task.status = TaskStatus.TODO
+    service.repository.save(task)
+
+    tasks = service.list_tasks()
+    stats = service.get_statistics()
+    return templates.TemplateResponse(
+        "partials/task_list.html",
+        {"request": request, "tasks": tasks, "stats": stats}
+    )
+
+
 @app.delete("/tasks/{task_id}", response_class=HTMLResponse)
-async def delete_task(request: Request, task_id: int):
+async def delete_task(request: Request, task_id: str):
     """删除任务"""
     service = get_service()
     success = service.delete_task(task_id)
@@ -106,7 +153,7 @@ async def delete_task(request: Request, task_id: int):
 
 
 @app.post("/tasks/{task_id}/time", response_class=HTMLResponse)
-async def add_time(request: Request, task_id: int, minutes: int = Form(...)):
+async def add_time(request: Request, task_id: str, minutes: int = Form(...)):
     """添加工时"""
     service = get_service()
     task = service.add_time(task_id, minutes)

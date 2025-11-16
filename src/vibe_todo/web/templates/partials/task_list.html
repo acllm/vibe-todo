@@ -1,30 +1,100 @@
 {% for task in tasks %}
-<article class="task-card">
-    <div class="task-header">
-        <h3 class="task-title">
-            <span class="task-status status-{{ task.status.value }}">
-                {% if task.status.value == "todo" %}待处理
-                {% elif task.status.value == "in_progress" %}进行中
-                {% else %}已完成{% endif %}
-            </span>
-            {{ task.title }}
-        </h3>
-        {% if task.time_spent > 0 %}
-        <span class="time-badge">⏱️ {{ task.format_time_spent() }}</span>
-        {% endif %}
+<article class="task-card priority-{{ task.priority.value }} {% if task.is_overdue() %}overdue{% endif %}">
+    <div class="task-header" onclick="toggleDetails('{{ task.id }}')">
+        <div class="task-title-wrapper">
+            <h3 class="task-title {% if task.status.value == 'done' %}done{% endif %}">
+                {{ task.title }}
+                <span id="icon-{{ task.id }}" class="toggle-icon">▼</span>
+            </h3>
+            
+            <div class="task-badges">
+                <span class="badge status-badge status-{{ task.status.value }}">
+                    {% if task.status.value == "todo" %}⭕ 待处理
+                    {% elif task.status.value == "in_progress" %}🔄 进行中
+                    {% else %}✅ 已完成{% endif %}
+                </span>
+                
+                <span class="badge priority-badge priority-{{ task.priority.value }}">
+                    {% if task.priority.value == "urgent" %}🔴 紧急
+                    {% elif task.priority.value == "high" %}🟠 高
+                    {% elif task.priority.value == "medium" %}🟡 中
+                    {% else %}🟢 低{% endif %}
+                </span>
+                
+                {% if task.time_spent > 0 %}
+                <span class="time-badge">⏱️ {{ task.format_time_spent() }}</span>
+                {% endif %}
+                
+                {% if task.tags %}
+                    {% for tag in task.tags %}
+                    <span class="badge tag-badge">🏷️ {{ tag }}</span>
+                    {% endfor %}
+                {% endif %}
+                
+                {% if task.project %}
+                <span class="badge project-badge">📁 {{ task.project }}</span>
+                {% endif %}
+            </div>
+            
+            <div class="task-meta">
+                {% if task.due_date %}
+                <div class="task-meta-item">
+                    <span class="due-date {% if task.is_overdue() %}overdue{% elif task.days_until_due() and task.days_until_due() <= 3 %}soon{% endif %}">
+                        📅 {{ task.due_date.strftime('%Y-%m-%d') }}
+                        {% if task.is_overdue() %}
+                            ⚠️ 已逾期
+                        {% elif task.days_until_due() is not none %}
+                            ({{ task.days_until_due() }}天后)
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
+                
+                <div class="task-meta-item">
+                    <span>🆔 {{ task.id[:8] if task.id|string|length > 10 else task.id }}</span>
+                </div>
+            </div>
+        </div>
     </div>
     
     {% if task.description %}
     <p class="task-description">{{ task.description }}</p>
     {% endif %}
     
+    <!-- 可折叠详情 -->
+    <div class="task-details" id="details-{{ task.id }}">
+        <div class="detail-row">
+            <div class="detail-label">📅 创建时间</div>
+            <div class="detail-value">{{ task.created_at.strftime('%Y-%m-%d %H:%M') }}</div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-label">🔄 更新时间</div>
+            <div class="detail-value">{{ task.updated_at.strftime('%Y-%m-%d %H:%M') }}</div>
+        </div>
+        {% if task.due_date %}
+        <div class="detail-row">
+            <div class="detail-label">⏰ 截止时间</div>
+            <div class="detail-value">{{ task.due_date.strftime('%Y-%m-%d %H:%M') }}</div>
+        </div>
+        {% endif %}
+        <div class="detail-row">
+            <div class="detail-label">⏱️ 累计工时</div>
+            <div class="detail-value">{{ task.format_time_spent() }} ({{ task.time_spent }} 分钟)</div>
+        </div>
+        <div class="detail-row">
+            <div class="detail-label">🆔 完整ID</div>
+            <div class="detail-value" style="font-family: monospace; font-size: 0.85rem; word-break: break-all;">{{ task.id }}</div>
+        </div>
+    </div>
+    
+    <!-- 操作按钮 -->
     <div class="task-actions">
         {% if task.status.value != "done" %}
         <button 
             hx-post="/tasks/{{ task.id }}/done" 
             hx-target="#task-list"
             class="secondary">
-            ✓ 完成
+            ✅ 标记完成
         </button>
         {% endif %}
         
@@ -33,9 +103,31 @@
             hx-post="/tasks/{{ task.id }}/start" 
             hx-target="#task-list"
             class="contrast">
-            ▶ 开始
+            ▶️ 开始任务
         </button>
         {% endif %}
+        
+        {% if task.status.value == "in_progress" %}
+        <button 
+            hx-post="/tasks/{{ task.id }}/todo" 
+            hx-target="#task-list"
+            class="secondary outline">
+            ⏸️ 暂停
+        </button>
+        {% endif %}
+        
+        <form 
+            hx-post="/tasks/{{ task.id }}/time" 
+            hx-target="#task-list"
+            class="quick-time-form">
+            <input 
+                type="number" 
+                name="minutes" 
+                placeholder="分钟" 
+                min="1"
+                required>
+            <button type="submit" class="outline">⏱️ +工时</button>
+        </form>
         
         <button 
             hx-delete="/tasks/{{ task.id }}" 
@@ -44,25 +136,13 @@
             class="secondary outline">
             🗑️ 删除
         </button>
-        
-        <form 
-            hx-post="/tasks/{{ task.id }}/time" 
-            hx-target="#task-list"
-            style="display: inline-flex; gap: 0.5rem; margin: 0;">
-            <input 
-                type="number" 
-                name="minutes" 
-                placeholder="分钟" 
-                min="1" 
-                style="width: 80px; margin: 0;">
-            <button type="submit" class="outline">+ 工时</button>
-        </form>
     </div>
 </article>
 {% endfor %}
 
 {% if not tasks %}
-<article>
-    <p style="text-align: center; color: var(--muted-color);">暂无任务，添加一个开始吧！</p>
-</article>
+<div class="empty-state">
+    <div class="empty-state-icon">📭</div>
+    <p>暂无任务，添加一个开始吧！</p>
+</div>
 {% endif %}

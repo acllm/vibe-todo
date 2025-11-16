@@ -13,30 +13,81 @@
         
         .task-card {
             margin-bottom: 1rem;
-            padding: 1rem;
+            padding: 1.25rem;
             border-radius: 0.5rem;
             background-color: var(--card-background-color);
+            border-left: 4px solid var(--muted-border-color);
+            transition: all 0.2s ease;
+        }
+        
+        .task-card:hover {
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transform: translateY(-2px);
+        }
+        
+        .task-card.priority-urgent {
+            border-left-color: #d32f2f;
+        }
+        
+        .task-card.priority-high {
+            border-left-color: #f57c00;
+        }
+        
+        .task-card.priority-medium {
+            border-left-color: #fbc02d;
+        }
+        
+        .task-card.priority-low {
+            border-left-color: #388e3c;
+        }
+        
+        .task-card.overdue {
+            background-color: #fff5f5;
         }
         
         .task-header {
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.5rem;
+            align-items: flex-start;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+        }
+        
+        .task-title-wrapper {
+            flex: 1;
         }
         
         .task-title {
-            font-size: 1.1rem;
+            font-size: 1.2rem;
             font-weight: 600;
-            margin: 0;
+            margin: 0 0 0.5rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
         
-        .task-status {
+        .task-title.done {
+            text-decoration: line-through;
+            opacity: 0.6;
+        }
+        
+        .task-badges {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        
+        .badge {
             display: inline-block;
             padding: 0.25rem 0.75rem;
             border-radius: 1rem;
-            font-size: 0.85rem;
+            font-size: 0.75rem;
             font-weight: 500;
+        }
+        
+        .status-badge {
+            font-size: 0.85rem;
         }
         
         .status-todo {
@@ -52,24 +103,152 @@
         .status-done {
             background-color: #e8f5e9;
             color: #388e3c;
-            text-decoration: line-through;
+        }
+        
+        .priority-badge {
+            font-weight: 600;
+        }
+        
+        .priority-urgent {
+            background-color: #ffebee;
+            color: #d32f2f;
+        }
+        
+        .priority-high {
+            background-color: #fff3e0;
+            color: #f57c00;
+        }
+        
+        .priority-medium {
+            background-color: #fffde7;
+            color: #f57f17;
+        }
+        
+        .priority-low {
+            background-color: #e8f5e9;
+            color: #388e3c;
+        }
+        
+        .tag-badge {
+            background-color: #f3e5f5;
+            color: #7b1fa2;
+        }
+        
+        .project-badge {
+            background-color: #e0f2f1;
+            color: #00695c;
+        }
+        
+        .task-meta {
+            display: flex;
+            gap: 1rem;
+            margin-top: 0.5rem;
+            font-size: 0.85rem;
+            color: var(--muted-color);
+            flex-wrap: wrap;
+        }
+        
+        .task-meta-item {
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .due-date {
+            font-weight: 500;
+        }
+        
+        .due-date.overdue {
+            color: #d32f2f;
+            font-weight: 600;
+        }
+        
+        .due-date.soon {
+            color: #f57c00;
+            font-weight: 600;
+        }
+        
+        .time-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.75rem;
+            background-color: #e3f2fd;
+            color: #1976d2;
+            border-radius: 1rem;
+            font-size: 0.85rem;
+            font-weight: 600;
         }
         
         .task-description {
+            color: var(--color);
+            margin: 0.75rem 0;
+            line-height: 1.6;
+        }
+        
+        .task-details {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--muted-border-color);
+            display: none;
+        }
+        
+        .task-details.show {
+            display: block;
+            animation: slideDown 0.2s ease;
+        }
+        
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .detail-row {
+            display: flex;
+            padding: 0.5rem 0;
+            font-size: 0.9rem;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            width: 120px;
             color: var(--muted-color);
-            margin: 0.5rem 0;
+        }
+        
+        .detail-value {
+            flex: 1;
         }
         
         .task-actions {
             display: flex;
             gap: 0.5rem;
-            margin-top: 0.75rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
         }
         
-        .task-actions button {
-            padding: 0.25rem 0.75rem;
+        .task-actions button,
+        .task-actions input[type="submit"] {
+            padding: 0.4rem 1rem;
             font-size: 0.85rem;
             margin: 0;
+        }
+        
+        .quick-time-form {
+            display: inline-flex;
+            gap: 0.5rem;
+            align-items: center;
+        }
+        
+        .quick-time-form input {
+            width: 80px;
+            margin: 0;
+            padding: 0.4rem 0.5rem;
         }
         
         .stats-grid {
@@ -81,21 +260,28 @@
         
         .stat-card {
             text-align: center;
-            padding: 1rem;
+            padding: 1.25rem;
             border-radius: 0.5rem;
             background-color: var(--card-background-color);
+            transition: transform 0.2s ease;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
         
         .stat-value {
-            font-size: 2rem;
+            font-size: 2.5rem;
             font-weight: 700;
             margin: 0;
+            color: var(--primary);
         }
         
         .stat-label {
             color: var(--muted-color);
             font-size: 0.9rem;
-            margin-top: 0.25rem;
+            margin-top: 0.5rem;
         }
         
         .filter-tabs {
@@ -104,6 +290,7 @@
             margin-bottom: 1.5rem;
             border-bottom: 2px solid var(--muted-border-color);
             padding-bottom: 0.5rem;
+            overflow-x: auto;
         }
         
         .filter-tabs button {
@@ -113,10 +300,14 @@
             cursor: pointer;
             color: var(--muted-color);
             font-weight: 500;
+            white-space: nowrap;
+            transition: all 0.2s ease;
         }
         
         .filter-tabs button:hover {
             color: var(--primary);
+            background-color: var(--card-background-color);
+            border-radius: 0.25rem;
         }
         
         .filter-tabs button.active {
@@ -124,13 +315,46 @@
             border-bottom: 2px solid var(--primary);
         }
         
-        .time-badge {
-            display: inline-block;
-            padding: 0.25rem 0.5rem;
-            background-color: var(--code-background-color);
-            border-radius: 0.25rem;
-            font-size: 0.85rem;
-            font-family: monospace;
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+        
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .task-header {
+                flex-direction: column;
+            }
+            
+            .task-meta {
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+        }
+        
+        .toggle-icon {
+            font-size: 0.9rem;
+            color: var(--muted-color);
+            transition: transform 0.2s ease;
+        }
+        
+        .toggle-icon.open {
+            transform: rotate(180deg);
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--muted-color);
+        }
+        
+        .empty-state-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
         }
     </style>
 </head>
@@ -145,42 +369,70 @@
         <section class="stats-grid">
             <div class="stat-card">
                 <p class="stat-value">{{ stats.total }}</p>
-                <p class="stat-label">总任务</p>
+                <p class="stat-label">📊 总任务</p>
             </div>
             <div class="stat-card">
                 <p class="stat-value">{{ stats.todo }}</p>
-                <p class="stat-label">待处理</p>
+                <p class="stat-label">⭕ 待处理</p>
             </div>
             <div class="stat-card">
                 <p class="stat-value">{{ stats.in_progress }}</p>
-                <p class="stat-label">进行中</p>
+                <p class="stat-label">🔄 进行中</p>
             </div>
             <div class="stat-card">
                 <p class="stat-value">{{ stats.done }}</p>
-                <p class="stat-label">已完成</p>
+                <p class="stat-label">✅ 已完成</p>
             </div>
             <div class="stat-card">
                 <p class="stat-value">{{ "%.1f"|format(stats.total_time_hours) }}</p>
-                <p class="stat-label">总工时（小时）</p>
+                <p class="stat-label">⏱️ 总工时（小时）</p>
             </div>
         </section>
 
         <!-- 添加任务表单 -->
         <section>
-            <h2>添加新任务</h2>
+            <h2>➕ 添加新任务</h2>
             <form hx-post="/tasks" hx-target="#task-list" hx-swap="innerHTML">
                 <input type="text" name="title" placeholder="任务标题" required>
                 <textarea name="description" placeholder="任务描述（可选）" rows="2"></textarea>
-                <button type="submit">添加任务</button>
+                
+                <div class="form-row">
+                    <div>
+                        <label for="priority">优先级</label>
+                        <select name="priority" id="priority">
+                            <option value="medium">🟡 中</option>
+                            <option value="low">🟢 低</option>
+                            <option value="high">🟠 高</option>
+                            <option value="urgent">🔴 紧急</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="due_date">截止日期</label>
+                        <input type="date" name="due_date" id="due_date">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div>
+                        <label for="tags">标签（逗号分隔）</label>
+                        <input type="text" name="tags" id="tags" placeholder="例如: 重要, 紧急">
+                    </div>
+                    <div>
+                        <label for="project">项目</label>
+                        <input type="text" name="project" id="project" placeholder="项目名称">
+                    </div>
+                </div>
+                
+                <button type="submit">➕ 添加任务</button>
             </form>
         </section>
 
         <!-- 筛选标签 -->
         <div class="filter-tabs">
-            <button hx-get="/tasks/filter/all" hx-target="#task-list" class="active">全部</button>
-            <button hx-get="/tasks/filter/todo" hx-target="#task-list">待处理</button>
-            <button hx-get="/tasks/filter/in_progress" hx-target="#task-list">进行中</button>
-            <button hx-get="/tasks/filter/done" hx-target="#task-list">已完成</button>
+            <button hx-get="/tasks/filter/all" hx-target="#task-list" class="active">📋 全部</button>
+            <button hx-get="/tasks/filter/todo" hx-target="#task-list">⭕ 待处理</button>
+            <button hx-get="/tasks/filter/in_progress" hx-target="#task-list">🔄 进行中</button>
+            <button hx-get="/tasks/filter/done" hx-target="#task-list">✅ 已完成</button>
         </div>
 
         <!-- 任务列表 -->
@@ -188,5 +440,29 @@
             {% include "partials/task_list.html" %}
         </section>
     </main>
+    
+    <script>
+        // 切换任务详情
+        function toggleDetails(taskId) {
+            const details = document.getElementById('details-' + taskId);
+            const icon = document.getElementById('icon-' + taskId);
+            if (details.classList.contains('show')) {
+                details.classList.remove('show');
+                icon.classList.remove('open');
+            } else {
+                details.classList.add('show');
+                icon.classList.add('open');
+            }
+        }
+        
+        // 更新筛选标签激活状态
+        document.addEventListener('htmx:afterSwap', function(evt) {
+            if (evt.detail.target.id === 'task-list') {
+                document.querySelectorAll('.filter-tabs button').forEach(btn => {
+                    btn.classList.remove('active');
+                });
+            }
+        });
+    </script>
 </body>
 </html>
