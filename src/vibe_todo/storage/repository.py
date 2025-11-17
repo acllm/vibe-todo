@@ -98,7 +98,6 @@ class TaskRepository:
                 else:
                     db_task = TaskModel.from_domain(task)
                     session.add(db_task)
-                    session.add(db_task)
             else:
                 # 创建新任务
                 db_task = TaskModel.from_domain(task)

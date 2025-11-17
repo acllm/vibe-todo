@@ -86,6 +86,39 @@ vibe delete 1
 vibe stats
 ```
 
+#### 数据导入/导出 (v0.2.0+)
+
+```bash
+# 导出任务
+vibe export tasks.json              # 导出为JSON
+vibe export tasks.csv --format csv  # 导出为CSV
+vibe export tasks.json --ids 1,2,3  # 导出指定任务
+
+# 导入任务
+vibe import tasks.json                            # 从JSON导入
+vibe import tasks.csv --format csv                # 从CSV导入
+vibe import tasks.json --strategy create_new      # 导入策略
+```
+
+#### 批量操作 (v0.2.0+)
+
+```bash
+# 批量标记完成
+vibe batch done 1 2 3
+
+# 批量删除（带确认）
+vibe batch delete 1 2 3
+
+# 批量添加标签
+vibe batch tag 1 2 3 urgent,review
+
+# 批量设置优先级
+vibe batch priority 1 2 3 high
+
+# 批量设置项目
+vibe batch project 1 2 3 "Q1-Sprint"
+```
+
 #### 后端配置
 
 ```bash
@@ -188,12 +221,17 @@ ruff check .
 
 ## 📊 项目状态
 
-**当前版本**: v0.1.0  
+**当前版本**: v0.2.0  
 **开发状态**: ✅ 稳定 (Stable)  
-**测试覆盖**: 核心功能已测试
+**测试覆盖**: 47 个测试用例全部通过
 
 ### 已实现功能
 
+#### v0.2.0 (2025-11-17)
+- ✅ **数据导入/导出**：JSON/CSV 格式，支持冲突策略
+- ✅ **批量操作**：批量标记完成、删除、添加标签、设置优先级/项目
+
+#### v0.1.x
 - ✅ 完整的任务管理（CRUD）
 - ✅ 优先级和截止日期
 - ✅ 标签和项目组织
@@ -207,10 +245,11 @@ ruff check .
 
 查看完整的技术架构和未来规划：[ARCHITECTURE.md](ARCHITECTURE.md)
 
-#### 近期计划 (v0.2.0)
-- 🔄 数据导出/导入 (JSON/CSV)
-- 🔄 批量操作
-- 🔄 全文搜索和高级过滤
+#### 下一步 (v0.2.1 - v0.3.0)
+- 🔄 全文搜索和高级过滤（FTS5）
+- 💡 交互式任务编辑
+- 💡 看板和日历视图
+- 💡 深色模式
 
 #### 中期规划 (v0.3.0 - v0.4.0)
 - 💡 交互式任务编辑

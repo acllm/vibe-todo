@@ -17,7 +17,7 @@ class TaskService:
 
     def create_task(
         self,
-        title: str,
+        title_or_task,  # 可以是标题字符串或Task对象
         description: str = "",
         priority: TaskPriority = TaskPriority.MEDIUM,
         due_date: Optional[datetime] = None,
@@ -25,14 +25,20 @@ class TaskService:
         project: Optional[str] = None,
     ) -> Task:
         """创建新任务"""
-        task = Task(
-            title=title,
-            description=description,
-            priority=priority,
-            due_date=due_date,
-            tags=tags or [],
-            project=project,
-        )
+        # 支持两种调用方式
+        if isinstance(title_or_task, Task):
+            # 直接传入Task对象
+            task = title_or_task
+        else:
+            # 传入单独的参数
+            task = Task(
+                title=title_or_task,
+                description=description,
+                priority=priority,
+                due_date=due_date,
+                tags=tags or [],
+                project=project,
+            )
         return self.repository.save(task)
 
     def get_task(self, task_id: int) -> Optional[Task]:
@@ -101,3 +107,64 @@ class TaskService:
             "total_time_minutes": total_time,
             "total_time_hours": total_time / 60,
         }
+    
+    # 批量操作方法
+    
+    def batch_update_status(self, task_ids: List[str], status: TaskStatus) -> int:
+        """批量更新任务状态"""
+        success_count = 0
+        for task_id in task_ids:
+            task = self.repository.get_by_id(task_id)
+            if task:
+                task.status = status
+                task.updated_at = datetime.now()
+                self.repository.save(task)
+                success_count += 1
+        return success_count
+    
+    def batch_delete(self, task_ids: List[str]) -> int:
+        """批量删除任务"""
+        success_count = 0
+        for task_id in task_ids:
+            if self.repository.delete(task_id):
+                success_count += 1
+        return success_count
+    
+    def batch_add_tags(self, task_ids: List[str], tags: List[str]) -> int:
+        """批量添加标签"""
+        success_count = 0
+        for task_id in task_ids:
+            task = self.repository.get_by_id(task_id)
+            if task:
+                # 合并标签（去重）
+                existing_tags = set(task.tags or [])
+                new_tags = existing_tags.union(set(tags))
+                task.tags = list(new_tags)
+                task.updated_at = datetime.now()
+                self.repository.save(task)
+                success_count += 1
+        return success_count
+    
+    def batch_update_priority(self, task_ids: List[str], priority: TaskPriority) -> int:
+        """批量设置优先级"""
+        success_count = 0
+        for task_id in task_ids:
+            task = self.repository.get_by_id(task_id)
+            if task:
+                task.priority = priority
+                task.updated_at = datetime.now()
+                self.repository.save(task)
+                success_count += 1
+        return success_count
+    
+    def batch_update_project(self, task_ids: List[str], project: str) -> int:
+        """批量设置项目"""
+        success_count = 0
+        for task_id in task_ids:
+            task = self.repository.get_by_id(task_id)
+            if task:
+                task.project = project
+                task.updated_at = datetime.now()
+                self.repository.save(task)
+                success_count += 1
+        return success_count
