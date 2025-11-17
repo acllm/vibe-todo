@@ -508,5 +508,72 @@ def import_tasks(input_path: str, format: str, strategy: str):
         console.print(f"[red]✗ 导入失败: {str(e)}[/red]")
 
 
+@cli.group()
+def batch():
+    """批量操作命令"""
+    pass
+
+
+@batch.command()
+@click.argument("task_ids", nargs=-1, required=True)
+def done(task_ids):
+    """批量标记任务为完成"""
+    service = get_service()
+    count = service.batch_update_status(list(task_ids), TaskStatus.DONE)
+    console.print(f"[green]✓ 成功标记 {count} 个任务为完成[/green]")
+
+
+@batch.command()
+@click.argument("task_ids", nargs=-1, required=True)
+def delete(task_ids):
+    """批量删除任务"""
+    service = get_service()
+    
+    # 确认删除
+    if not Confirm.ask(f"[yellow]确定要删除 {len(task_ids)} 个任务吗？[/yellow]"):
+        console.print("[cyan]已取消[/cyan]")
+        return
+    
+    count = service.batch_delete(list(task_ids))
+    console.print(f"[green]✓ 成功删除 {count} 个任务[/green]")
+
+
+@batch.command()
+@click.argument("task_ids", nargs=-1, required=True)
+@click.argument("tags")
+def tag(task_ids, tags: str):
+    """批量添加标签（用逗号分隔多个标签）"""
+    service = get_service()
+    tag_list = [t.strip() for t in tags.split(",")]
+    count = service.batch_add_tags(list(task_ids), tag_list)
+    console.print(f"[green]✓ 成功为 {count} 个任务添加标签: {', '.join(tag_list)}[/green]")
+
+
+@batch.command()
+@click.argument("task_ids", nargs=-1, required=True)
+@click.argument("priority", type=click.Choice(["low", "medium", "high", "urgent"]))
+def priority(task_ids, priority: str):
+    """批量设置优先级"""
+    service = get_service()
+    priority_map = {
+        "low": TaskPriority.LOW,
+        "medium": TaskPriority.MEDIUM,
+        "high": TaskPriority.HIGH,
+        "urgent": TaskPriority.URGENT,
+    }
+    count = service.batch_update_priority(list(task_ids), priority_map[priority])
+    console.print(f"[green]✓ 成功设置 {count} 个任务的优先级为: {priority}[/green]")
+
+
+@batch.command()
+@click.argument("task_ids", nargs=-1, required=True)
+@click.argument("project")
+def project(task_ids, project: str):
+    """批量设置项目"""
+    service = get_service()
+    count = service.batch_update_project(list(task_ids), project)
+    console.print(f"[green]✓ 成功设置 {count} 个任务的项目为: {project}[/green]")
+
+
 if __name__ == "__main__":
     cli()
