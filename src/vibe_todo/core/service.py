@@ -17,22 +17,28 @@ class TaskService:
 
     def create_task(
         self,
-        title_or_task,  # 可以是标题字符串或Task对象
+        title,  # 可以是标题字符串或Task对象
         description: str = "",
         priority: TaskPriority = TaskPriority.MEDIUM,
         due_date: Optional[datetime] = None,
         tags: Optional[List[str]] = None,
         project: Optional[str] = None,
     ) -> Task:
-        """创建新任务"""
+        """
+        创建新任务
+        
+        支持两种调用方式：
+        1. 传统方式：create_task(title="任务", description="描述", ...)
+        2. 对象方式：create_task(task_object)
+        """
         # 支持两种调用方式
-        if isinstance(title_or_task, Task):
+        if isinstance(title, Task):
             # 直接传入Task对象
-            task = title_or_task
+            task = title
         else:
             # 传入单独的参数
             task = Task(
-                title=title_or_task,
+                title=title,
                 description=description,
                 priority=priority,
                 due_date=due_date,
