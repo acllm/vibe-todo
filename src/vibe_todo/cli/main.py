@@ -138,13 +138,18 @@ def list(status: str, project: str, overdue: bool):
         time_str = task.format_time_spent() if task.time_spent > 0 else "-"
         
         # 截止日期
-        due_str = "-"
         if task.due_date:
-            due_str = task.due_date.strftime("%Y-%m-%d")
+            due_date_str = task.due_date.strftime("%Y-%m-%d")
             if task.is_overdue():
-                due_str = f"[red]{due_str} ⚠️[/red]"
+                # 使用 Text 对象正确处理 Emoji 宽度
+                due_str = Text(due_date_str + " ", style="red")
+                due_str.append("⚠️", style="red")
             elif task.days_until_due() is not None and task.days_until_due() <= 3:
-                due_str = f"[yellow]{due_str}[/yellow]"
+                due_str = Text(due_date_str, style="yellow")
+            else:
+                due_str = due_date_str
+        else:
+            due_str = "-"
         
         # 标签
         tags_str = ", ".join(task.tags) if task.tags else "-"
