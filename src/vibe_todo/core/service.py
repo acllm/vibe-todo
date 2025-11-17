@@ -17,7 +17,7 @@ class TaskService:
 
     def create_task(
         self,
-        title: str,
+        title_or_task,  # 可以是标题字符串或Task对象
         description: str = "",
         priority: TaskPriority = TaskPriority.MEDIUM,
         due_date: Optional[datetime] = None,
@@ -25,14 +25,20 @@ class TaskService:
         project: Optional[str] = None,
     ) -> Task:
         """创建新任务"""
-        task = Task(
-            title=title,
-            description=description,
-            priority=priority,
-            due_date=due_date,
-            tags=tags or [],
-            project=project,
-        )
+        # 支持两种调用方式
+        if isinstance(title_or_task, Task):
+            # 直接传入Task对象
+            task = title_or_task
+        else:
+            # 传入单独的参数
+            task = Task(
+                title=title_or_task,
+                description=description,
+                priority=priority,
+                due_date=due_date,
+                tags=tags or [],
+                project=project,
+            )
         return self.repository.save(task)
 
     def get_task(self, task_id: int) -> Optional[Task]:

@@ -13,6 +13,8 @@ from rich.prompt import Confirm
 from ..core import TaskService, TaskStatus, TaskPriority
 from ..storage.factory import create_repository
 from ..config import get_config
+from ..io import TaskExporter, TaskImporter, ImportConflictStrategy
+from ..io.formats import ExportFormat
 
 console = Console()
 
@@ -434,6 +436,76 @@ def web():
     console.print("[green]🚀 启动 Web 服务器...[/green]")
     console.print("[cyan]📍 访问: http://localhost:8000[/cyan]")
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+@cli.command()
+@click.argument("output_path")
+@click.option("--format", "-f", type=click.Choice(["json", "csv"]), default="json", 
+              help="导出格式 (默认: json)")
+@click.option("--ids", help="指定要导出的任务ID，用逗号分隔")
+def export(output_path: str, format: str, ids: Optional[str]):
+    """导出任务到文件"""
+    service = get_service()
+    exporter = TaskExporter(service)
+    
+    # 解析任务ID
+    task_ids = None
+    if ids:
+        task_ids = [tid.strip() for tid in ids.split(",")]
+    
+    # 执行导出
+    export_format = ExportFormat.JSON if format == "json" else ExportFormat.CSV
+    
+    try:
+        count = exporter.export_tasks(output_path, export_format, task_ids)
+        console.print(f"[green]✓ 成功导出 {count} 个任务到: {output_path}[/green]")
+    except Exception as e:
+        console.print(f"[red]✗ 导出失败: {str(e)}[/red]")
+
+
+@cli.command(name="import")
+@click.argument("input_path")
+@click.option("--format", "-f", type=click.Choice(["json", "csv"]), default="json",
+              help="导入格式 (默认: json)")
+@click.option("--strategy", "-s", 
+              type=click.Choice(["skip", "overwrite", "create_new"]), 
+              default="create_new",
+              help="冲突处理策略 (默认: create_new)")
+def import_tasks(input_path: str, format: str, strategy: str):
+    """从文件导入任务"""
+    service = get_service()
+    importer = TaskImporter(service)
+    
+    # 解析策略
+    strategy_map = {
+        "skip": ImportConflictStrategy.SKIP,
+        "overwrite": ImportConflictStrategy.OVERWRITE,
+        "create_new": ImportConflictStrategy.CREATE_NEW,
+    }
+    conflict_strategy = strategy_map[strategy]
+    
+    # 执行导入
+    try:
+        if format == "json":
+            result = importer.import_from_json(input_path, conflict_strategy)
+        else:
+            result = importer.import_from_csv(input_path, conflict_strategy)
+        
+        # 显示结果
+        console.print(f"\n[bold]导入结果:[/bold]")
+        console.print(f"  [green]✓ 成功: {result.success_count}[/green]")
+        if result.skip_count > 0:
+            console.print(f"  [yellow]⊘ 跳过: {result.skip_count}[/yellow]")
+        if result.error_count > 0:
+            console.print(f"  [red]✗ 错误: {result.error_count}[/red]")
+            console.print("\n[bold red]错误详情:[/bold red]")
+            for line, error in result.errors[:10]:  # 只显示前10个错误
+                console.print(f"  第 {line} 行: {error}")
+            if len(result.errors) > 10:
+                console.print(f"  ... 还有 {len(result.errors) - 10} 个错误")
+    
+    except Exception as e:
+        console.print(f"[red]✗ 导入失败: {str(e)}[/red]")
 
 
 if __name__ == "__main__":
