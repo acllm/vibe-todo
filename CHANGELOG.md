@@ -91,3 +91,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - 全文搜索（SQLite FTS5）
 - 高级过滤器（多条件组合）
 - 搜索关键词高亮
+
+## [0.2.1] - 2025-11-18
+
+### Fixed
+
+- 修复 `TaskService.create_task()` 参数名导致 CLI 调用失败的问题
+- 修复批量操作函数名冲突（done/delete 与单个操作命令冲突）
+- 修复批量操作参数名与函数名冲突（priority/project）
+
+### Changed
+
+- 批量操作函数重命名为 `batch_*` 前缀避免命名冲突
+- 批量操作参数使用描述性名称（`priority_level`, `project_name`）
+
+### Known Issues
+
+- 批量命令实际执行存在问题，将在 v0.2.2 修复
+- 基本功能（add/list/export/import）正常工作 ✅
+

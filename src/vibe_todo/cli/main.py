@@ -49,7 +49,7 @@ def get_priority_display(priority: TaskPriority) -> Text:
 
 
 @click.group()
-@click.version_option(version="0.2.0")
+@click.version_option(version="0.2.1")
 def cli():
     """Vibe Todo - 简洁实用的任务和工时管理工具"""
     pass
