@@ -514,18 +514,18 @@ def batch():
     pass
 
 
-@batch.command()
+@batch.command(name="done")
 @click.argument("task_ids", nargs=-1, required=True)
-def done(task_ids):
+def batch_done(task_ids):
     """批量标记任务为完成"""
     service = get_service()
     count = service.batch_update_status(list(task_ids), TaskStatus.DONE)
     console.print(f"[green]✓ 成功标记 {count} 个任务为完成[/green]")
 
 
-@batch.command()
+@batch.command(name="delete")
 @click.argument("task_ids", nargs=-1, required=True)
-def delete(task_ids):
+def batch_delete(task_ids):
     """批量删除任务"""
     service = get_service()
     
@@ -538,10 +538,10 @@ def delete(task_ids):
     console.print(f"[green]✓ 成功删除 {count} 个任务[/green]")
 
 
-@batch.command()
+@batch.command(name="tag")
 @click.argument("task_ids", nargs=-1, required=True)
 @click.argument("tags")
-def tag(task_ids, tags: str):
+def batch_tag(task_ids, tags: str):
     """批量添加标签（用逗号分隔多个标签）"""
     service = get_service()
     tag_list = [t.strip() for t in tags.split(",")]
@@ -549,10 +549,10 @@ def tag(task_ids, tags: str):
     console.print(f"[green]✓ 成功为 {count} 个任务添加标签: {', '.join(tag_list)}[/green]")
 
 
-@batch.command()
+@batch.command(name="priority")
 @click.argument("task_ids", nargs=-1, required=True)
-@click.argument("priority", type=click.Choice(["low", "medium", "high", "urgent"]))
-def priority(task_ids, priority: str):
+@click.argument("priority_level", type=click.Choice(["low", "medium", "high", "urgent"]))
+def batch_priority(task_ids, priority_level: str):
     """批量设置优先级"""
     service = get_service()
     priority_map = {
@@ -561,18 +561,18 @@ def priority(task_ids, priority: str):
         "high": TaskPriority.HIGH,
         "urgent": TaskPriority.URGENT,
     }
-    count = service.batch_update_priority(list(task_ids), priority_map[priority])
-    console.print(f"[green]✓ 成功设置 {count} 个任务的优先级为: {priority}[/green]")
+    count = service.batch_update_priority(list(task_ids), priority_map[priority_level])
+    console.print(f"[green]✓ 成功设置 {count} 个任务的优先级为: {priority_level}[/green]")
 
 
-@batch.command()
+@batch.command(name="project")
 @click.argument("task_ids", nargs=-1, required=True)
-@click.argument("project")
-def project(task_ids, project: str):
+@click.argument("project_name")
+def batch_project(task_ids, project_name: str):
     """批量设置项目"""
     service = get_service()
-    count = service.batch_update_project(list(task_ids), project)
-    console.print(f"[green]✓ 成功设置 {count} 个任务的项目为: {project}[/green]")
+    count = service.batch_update_project(list(task_ids), project_name)
+    console.print(f"[green]✓ 成功设置 {count} 个任务的项目为: {project_name}[/green]")
 
 
 if __name__ == "__main__":
