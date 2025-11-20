@@ -2,7 +2,8 @@
 import click
 import re
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List, Dict
+from itertools import groupby
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -10,7 +11,7 @@ from rich.text import Text
 from rich import box
 from rich.prompt import Confirm
 
-from ..core import TaskService, TaskStatus, TaskPriority
+from ..core import TaskService, TaskStatus, TaskPriority, Task
 from ..storage.factory import create_repository
 from ..config import get_config
 from ..io import TaskExporter, TaskImporter, ImportConflictStrategy
@@ -48,8 +49,35 @@ def get_priority_display(priority: TaskPriority) -> Text:
     return Text(text, style=color)
 
 
+def sort_and_group_tasks(tasks: List[Task]) -> Dict[TaskStatus, List[Task]]:
+    """按状态和优先级对任务进行排序和分组
+    
+    排序规则：
+    1. 先按状态分组：进行中 > 待处理 > 已完成
+    2. 每个状态组内按优先级排序：紧急 > 高 > 中 > 低
+    
+    Args:
+        tasks: 任务列表
+    
+    Returns:
+        按状态分组的任务字典，每个组内按优先级排序
+    """
+    # 先按状态和优先级排序
+    sorted_tasks = sorted(
+        tasks,
+        key=lambda t: (t.status.sort_order(), t.priority.sort_order())
+    )
+    
+    # 按状态分组（使用列表推导式避免 list() 函数名冲突）
+    grouped = {}
+    for status, group in groupby(sorted_tasks, key=lambda t: t.status):
+        grouped[status] = [task for task in group]
+    
+    return grouped
+
+
 @click.group()
-@click.version_option(version="0.2.2")
+@click.version_option(version="0.2.3")
 def cli():
     """Vibe Todo - 简洁实用的任务和工时管理工具"""
     pass
@@ -97,7 +125,7 @@ def add(title: str, description: str, priority: str, due: str, tags: str, projec
 @click.option("-p", "--project", help="按项目筛选")
 @click.option("--overdue", is_flag=True, help="只显示逾期任务")
 def list(status: str, project: str, overdue: bool):
-    """列出所有任务"""
+    """列出所有任务（按状态和优先级分组展示）"""
     service = get_service()
 
     status_filter = None
@@ -118,60 +146,65 @@ def list(status: str, project: str, overdue: bool):
         console.print("[dim]暂无任务[/dim]")
         return
 
-    # 创建表格
-    table = Table(
-        title="📋 任务列表",
-        box=box.ROUNDED,
-        show_header=True,
-        header_style="bold magenta",
-    )
+    # 对任务进行分组和排序
+    grouped_tasks = sort_and_group_tasks(tasks)
     
-    # ID 列使用自适应宽度，可以显示完整的 UUID（Notion）或数字 ID（SQLite）
-    table.add_column("ID", style="cyan", overflow="fold")
-    table.add_column("标题", style="white", no_wrap=False)
-    table.add_column("状态", width=12)
-    table.add_column("优先级", width=10)
-    table.add_column("工时", width=8, style="blue")
-    table.add_column("截止日期", width=12)
-    table.add_column("标签", style="magenta")
-    
-    for task in tasks:
-        # 工时
-        time_str = task.format_time_spent() if task.time_spent > 0 else "-"
+    # 按状态组展示任务
+    for task_status in sorted(grouped_tasks.keys(), key=lambda s: s.sort_order()):
+        status_tasks = grouped_tasks[task_status]
         
-        # 截止日期
-        if task.due_date:
-            due_date_str = task.due_date.strftime("%Y-%m-%d")
-            if task.is_overdue():
-                # 使用 Text 对象正确处理 Emoji 宽度
-                due_str = Text(due_date_str + " ", style="red")
-                due_str.append("⚠️", style="red")
-            elif task.days_until_due() is not None and task.days_until_due() <= 3:
-                due_str = Text(due_date_str, style="yellow")
-            else:
-                due_str = due_date_str
-        else:
-            due_str = "-"
-        
-        # 标签
-        tags_str = ", ".join(task.tags) if task.tags else "-"
-        
-        # 标题（如果已完成添加删除线）
-        title_text = task.title
-        if task.status == TaskStatus.DONE:
-            title_text = f"[dim strikethrough]{task.title}[/dim strikethrough]"
-        
-        table.add_row(
-            str(task.id),
-            title_text,
-            get_status_display(task.status),
-            get_priority_display(task.priority),
-            time_str,
-            due_str,
-            tags_str,
+        # 创建每个状态组的表格
+        status_display = get_status_display(task_status)
+        table = Table(
+            title=f"📋 {status_display} ({len(status_tasks)} 项)",
+            box=box.ROUNDED,
+            show_header=True,
+            header_style="bold magenta",
         )
-    
-    console.print(table)
+        
+        # ID 列使用自适应宽度，可以显示完整的 UUID（Notion）或数字 ID（SQLite）
+        table.add_column("ID", style="cyan", overflow="fold")
+        table.add_column("标题", style="white", no_wrap=False)
+        table.add_column("优先级", width=10)
+        table.add_column("工时", width=8, style="blue")
+        table.add_column("截止日期", width=12)
+        table.add_column("标签", style="magenta")
+        
+        for task in status_tasks:
+            # 工时
+            time_str = task.format_time_spent() if task.time_spent > 0 else "-"
+            
+            # 截止日期
+            if task.due_date:
+                due_date_str = task.due_date.strftime("%Y-%m-%d")
+                if task.is_overdue():
+                    due_str = Text(due_date_str, style="red")
+                elif task.days_until_due() is not None and task.days_until_due() <= 3:
+                    due_str = Text(due_date_str, style="yellow")
+                else:
+                    due_str = due_date_str
+            else:
+                due_str = "-"
+            
+            # 标签
+            tags_str = ", ".join(task.tags) if task.tags else "-"
+            
+            # 标题（如果已完成添加删除线）
+            title_text = task.title
+            if task.status == TaskStatus.DONE:
+                title_text = f"[dim strikethrough]{task.title}[/dim strikethrough]"
+            
+            table.add_row(
+                str(task.id),
+                title_text,
+                get_priority_display(task.priority),
+                time_str,
+                due_str,
+                tags_str,
+            )
+        
+        console.print(table)
+        console.print()  # 在每个状态组之间添加空行
 
 
 @cli.command()

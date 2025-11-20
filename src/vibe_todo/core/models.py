@@ -9,6 +9,27 @@ class TaskStatus(Enum):
     TODO = "todo"
     IN_PROGRESS = "in_progress"
     DONE = "done"
+    
+    def sort_order(self) -> int:
+        """获取状态的排序优先级（数字越小越靠前）
+        
+        排序规则：进行中 > 待处理 > 已完成
+        """
+        order_map = {
+            TaskStatus.IN_PROGRESS: 1,
+            TaskStatus.TODO: 2,
+            TaskStatus.DONE: 3,
+        }
+        return order_map[self]
+    
+    def display_name(self) -> str:
+        """获取状态的中文显示名称"""
+        name_map = {
+            TaskStatus.IN_PROGRESS: "进行中",
+            TaskStatus.TODO: "待处理",
+            TaskStatus.DONE: "已完成",
+        }
+        return name_map[self]
 
 
 class TaskPriority(Enum):
@@ -17,6 +38,19 @@ class TaskPriority(Enum):
     MEDIUM = "medium"
     HIGH = "high"
     URGENT = "urgent"
+    
+    def sort_order(self) -> int:
+        """获取优先级的排序优先级（数字越小越靠前）
+        
+        排序规则：紧急 > 高 > 中 > 低
+        """
+        order_map = {
+            TaskPriority.URGENT: 1,
+            TaskPriority.HIGH: 2,
+            TaskPriority.MEDIUM: 3,
+            TaskPriority.LOW: 4,
+        }
+        return order_map[self]
 
 
 class Task:

@@ -5,6 +5,30 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2025-11-20
+
+### Added
+
+**任务列表分组展示**
+
+- `vibe list` 命令现在按状态分组展示任务
+  - 分组顺序：进行中 > 待处理 > 已完成
+  - 每个状态组内按优先级排序：紧急 > 高 > 中 > 低
+  - 每个状态组显示独立的表格，包含任务数量统计
+- 为 `TaskStatus` 和 `TaskPriority` 枚举添加 `sort_order()` 方法
+- 新增 `sort_and_group_tasks()` 函数实现任务分组逻辑
+
+### Changed
+
+- 任务列表移除了"状态"列（状态已在表格标题中展示）
+- 移除截止日期的 emoji 警告符号，保留颜色提示
+  - 逾期任务：红色
+  - 3天内到期：黄色
+
+### Fixed
+
+- 修复 `list` 命令与 Python 内置 `list()` 函数的命名冲突问题
+
 ## [0.2.2] - 2025-11-20
 
 ### Performance
