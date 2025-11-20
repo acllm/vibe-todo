@@ -1,8 +1,25 @@
-"""Notion 适配器配置缓存测试"""
+"""Notion 适配器配置缓存测试
+
+注意：
+- 这些测试通过 mock 模拟 notion-client 的行为
+- 如果 notion-client 未安装，测试会自动跳过
+- 测试不会实际连接 Notion API
+- 安装可选依赖: uv pip install -e ".[notion]"
+"""
 import pytest
-from unittest.mock import Mock, MagicMock, patch
-from vibe_todo.adapters.notion_adapter import NotionRepository
-from vibe_todo.core.models import Task, TaskStatus, TaskPriority
+from unittest.mock import Mock, MagicMock, patch, PropertyMock
+
+# 尝试导入，如果失败则跳过测试
+try:
+    from vibe_todo.adapters.notion_adapter import NotionRepository
+    NOTION_AVAILABLE = True
+except ImportError:
+    NOTION_AVAILABLE = False
+
+pytestmark = pytest.mark.skipif(
+    not NOTION_AVAILABLE,
+    reason="notion-client not installed (optional dependency)"
+)
 
 
 class TestNotionCaching:
