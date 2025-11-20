@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2025-11-20
+
+### Fixed
+
+**Notion 测试修复**
+
+- 修复在没有安装 `notion-client` 的环境中运行测试时的 `ModuleNotFoundError`
+- 将 `@patch` 装饰器改为 `with patch()` 上下文管理器
+  - 装饰器会在导入时执行，无法被 `pytest.mark.skipif` 阻止
+  - 上下文管理器只在测试执行时才进行 patch
+- 添加 `notion_client` 导入检查，更准确地判断依赖是否安装
+
+### Technical
+
+- 测试结果：没有 `notion-client` 时 7 个测试被正确跳过
+- 所有其他测试正常通过（47 passed, 7 skipped）
+
 ## [0.2.3] - 2025-11-20
 
 ### Added

@@ -77,7 +77,7 @@ def sort_and_group_tasks(tasks: List[Task]) -> Dict[TaskStatus, List[Task]]:
 
 
 @click.group()
-@click.version_option(version="0.2.3")
+@click.version_option(version="0.2.4")
 def cli():
     """Vibe Todo - 简洁实用的任务和工时管理工具"""
     pass
