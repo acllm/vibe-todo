@@ -9,11 +9,13 @@ from . import TaskRepositoryInterface
 class NotionRepository(TaskRepositoryInterface):
     """Notion 数据库适配器"""
     
-    def __init__(self, token: str, database_id: str):
+    def __init__(self, token: str, database_id: str, verify: bool = False, cached_data_source_id: str = None):
         """
         Args:
             token: Notion Integration Token
             database_id: Notion Database ID
+            verify: 是否在初始化时验证数据库访问（默认 False，延迟到首次使用）
+            cached_data_source_id: 缓存的 data_source_id（如果提供则跳过查询）
         """
         try:
             from notion_client import Client
@@ -22,11 +24,18 @@ class NotionRepository(TaskRepositoryInterface):
         
         self.client = Client(auth=token)
         self.database_id = database_id
-        self.data_source_id = None  # 缓存 data source ID
-        self._verify_and_get_data_source()
+        self.data_source_id = cached_data_source_id  # 使用缓存的 data_source_id
+        self._verified = bool(cached_data_source_id)  # 如果有缓存则标记为已验证
+        
+        # 可选的立即验证（用于配置测试等场景）
+        if verify:
+            self._ensure_data_source()
     
-    def _verify_and_get_data_source(self):
-        """验证数据库是否可访问并获取 data source ID"""
+    def _ensure_data_source(self):
+        """延迟获取 data source ID（仅在首次使用时调用）"""
+        if self.data_source_id is not None:
+            return
+        
         try:
             # 获取数据库信息
             db_info = self.client.databases.retrieve(database_id=self.database_id)
@@ -35,7 +44,7 @@ class NotionRepository(TaskRepositoryInterface):
             # 根据 Notion API 文档，数据库对象可能包含 data_sources 字段
             # 文档地址 https://developers.notion.com/reference/database-retrieve
             if "data_sources" in db_info and isinstance(db_info["data_sources"], list):
-                if "id" in db_info["data_sources"][0]:
+                if db_info["data_sources"] and "id" in db_info["data_sources"][0]:
                     self.data_source_id = db_info["data_sources"][0]["id"]
                 else:
                     # 没有单独的 data_source.id，使用 database_id
@@ -43,9 +52,26 @@ class NotionRepository(TaskRepositoryInterface):
             else:
                 # 如果没有 data_sources 字段，这是传统数据库，使用 database_id
                 self.data_source_id = self.database_id
-                
+            
+            self._verified = True
+            
+            # 缓存 data_source_id 到配置文件，避免下次重复查询
+            self._cache_data_source_id()
         except Exception as e:
             raise RuntimeError(f"无法访问 Notion 数据库: {e}")
+    
+    def _cache_data_source_id(self):
+        """将 data_source_id 缓存到配置文件"""
+        try:
+            from ..config import get_config
+            config = get_config()
+            config.update_backend_config(
+                "notion",
+                data_source_id=self.data_source_id
+            )
+        except Exception:
+            # 缓存失败不影响主流程
+            pass
     
     def _task_to_properties(self, task: Task) -> dict:
         """将 Task 转换为 Notion 属性格式"""
@@ -219,9 +245,13 @@ class NotionRepository(TaskRepositoryInterface):
     
     def list_all(self, status: Optional[TaskStatus] = None) -> List[Task]:
         """列出所有任务，可按状态筛选"""
-        # 构建查询参数
+        # 延迟获取 data_source_id（仅首次调用时会真正执行网络请求）
+        self._ensure_data_source()
+        
+        # 构建查询参数 - 使用 data_sources.query API
         query_params = {
-            "data_source_id": self.data_source_id
+            "data_source_id": self.data_source_id,
+            "page_size": 100  # 每次最多获取 100 条（Notion API 限制）
         }
         
         # 添加过滤器
@@ -242,12 +272,25 @@ class NotionRepository(TaskRepositoryInterface):
         ]
         
         try:
-            # 使用 SDK 的高级 API: data_sources.query()
-            response = self.client.data_sources.query(**query_params)
-            
+            # 使用 data_sources.query API 并实现分页
             tasks = []
-            for page in response.get("results", []):
-                tasks.append(self._properties_to_task(page))
+            has_more = True
+            start_cursor = None
+            
+            # 分页获取所有结果
+            while has_more:
+                if start_cursor:
+                    query_params["start_cursor"] = start_cursor
+                
+                response = self.client.data_sources.query(**query_params)
+                
+                # 解析当前页的任务
+                for page in response.get("results", []):
+                    tasks.append(self._properties_to_task(page))
+                
+                # 检查是否有更多页
+                has_more = response.get("has_more", False)
+                start_cursor = response.get("next_cursor")
             
             return tasks
         except Exception as e:

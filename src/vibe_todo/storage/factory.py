@@ -28,6 +28,7 @@ def create_repository() -> TaskRepositoryInterface:
         
         token = backend_config.get("token")
         database_id = backend_config.get("database_id")
+        cached_data_source_id = backend_config.get("data_source_id")  # 获取缓存的 data_source_id
         
         if not token or not database_id:
             raise ValueError(
@@ -35,7 +36,11 @@ def create_repository() -> TaskRepositoryInterface:
                 "请运行: vibe config set-backend notion --token <token> --database <id>"
             )
         
-        return NotionRepository(token=token, database_id=database_id)
+        return NotionRepository(
+            token=token, 
+            database_id=database_id,
+            cached_data_source_id=cached_data_source_id
+        )
     
     elif backend_type == "microsoft":
         # Microsoft To Do 后端

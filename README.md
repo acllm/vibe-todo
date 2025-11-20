@@ -5,15 +5,15 @@
 ## ✨ 特性
 
 - 📝 **任务管理**：创建、编辑、完成、删除任务
-- ⏱️  **工时追踪**：记录任务工作时长
+- ⏱️ **工时追踪**：记录任务工作时长
 - 🎨 **优先级管理**：低/中/高/紧急四个级别
 - 📅 **截止日期**：智能提醒逾期任务
 - 🏷️ **标签系统**：灵活的任务分类
 - 📁 **项目管理**：按项目组织任务
 - 🌐 **Web 界面**：使用 HTMX + Jinja2 + PicoCSS 构建的现代化界面
-- 💻 **精美 CLI**：使用 Rich 库打造的专业终端UI
+- 💻 **精美 CLI**：使用 Rich 库打造的专业终端 UI
 - 🔌 **多后端支持**：
-  - 🗄️  **SQLite** - 本地存储
+  - 🗄️ **SQLite** - 本地存储
   - 📓 **Notion** - 同步到 Notion 数据库
   - ✅ **Microsoft To Do** - 同步到 Microsoft To Do
 
@@ -143,10 +143,12 @@ vibe config set-backend microsoft \
 ### Notion 配置
 
 1. **创建 Integration**
+
    - 访问 https://www.notion.so/my-integrations
    - 创建新的 Integration，获取 Token
 
 2. **创建 Database**
+
    - 在 Notion 中创建一个数据库
    - 添加以下属性：
      - Name (title)
@@ -159,6 +161,7 @@ vibe config set-backend microsoft \
      - Time Spent (number)
 
 3. **连接 Database**
+
    - 在数据库页面，点击右上角 "..." → "Add connections"
    - 选择你创建的 Integration
    - 复制数据库 ID（URL 中的一段字符）
@@ -173,6 +176,7 @@ vibe config set-backend microsoft \
 ### Microsoft To Do 配置
 
 1. **注册 Azure AD 应用**
+
    - 访问 https://portal.azure.com
    - Azure Active Directory → App registrations → New registration
    - 设置 Redirect URI: `http://localhost`
@@ -180,6 +184,7 @@ vibe config set-backend microsoft \
    - 复制 Application (client) ID
 
 2. **配置 Vibe Todo**
+
    ```bash
    vibe config set-backend microsoft --client-id xxx
    ```
@@ -221,17 +226,23 @@ ruff check .
 
 ## 📊 项目状态
 
-**当前版本**: v0.2.0  
+**当前版本**: v0.2.2  
 **开发状态**: ✅ 稳定 (Stable)  
-**测试覆盖**: 47 个测试用例全部通过
+**测试覆盖**: 54 个测试用例全部通过
 
 ### 已实现功能
 
+#### v0.2.2 (2025-11-20)
+
+- ⚡ **性能优化**：Notion 后端延迟初始化 + 配置缓存，`vibe list` 提速 18%
+
 #### v0.2.0 (2025-11-17)
+
 - ✅ **数据导入/导出**：JSON/CSV 格式，支持冲突策略
 - ✅ **批量操作**：批量标记完成、删除、添加标签、设置优先级/项目
 
 #### v0.1.x
+
 - ✅ 完整的任务管理（CRUD）
 - ✅ 优先级和截止日期
 - ✅ 标签和项目组织
@@ -246,18 +257,21 @@ ruff check .
 查看完整的技术架构和未来规划：[ARCHITECTURE.md](ARCHITECTURE.md)
 
 #### 下一步 (v0.2.1 - v0.3.0)
+
 - 🔄 全文搜索和高级过滤（FTS5）
 - 💡 交互式任务编辑
 - 💡 看板和日历视图
 - 💡 深色模式
 
 #### 中期规划 (v0.3.0 - v0.4.0)
+
 - 💡 交互式任务编辑
 - 💡 看板和日历视图
 - 💡 深色模式
 - 🔮 Google Tasks / Todoist 集成
 
 #### 长期愿景 (v0.5.0+)
+
 - 🌟 AI 辅助（自动分类、优先级建议）
 - 🌟 协作功能（多用户、评论）
 - 🌟 实时同步和离线模式

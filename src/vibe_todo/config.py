@@ -62,6 +62,17 @@ class Config:
         self.config["backend"][backend_type] = kwargs
         self._save_config()
     
+    def update_backend_config(self, backend_type: str, **kwargs):
+        """更新后端配置的特定字段（不覆盖已有配置）"""
+        if "backend" not in self.config:
+            self.config["backend"] = {}
+        if backend_type not in self.config["backend"]:
+            self.config["backend"][backend_type] = {}
+        
+        # 合并配置
+        self.config["backend"][backend_type].update(kwargs)
+        self._save_config()
+    
     def get(self, key: str, default=None):
         """获取配置项"""
         keys = key.split(".")
