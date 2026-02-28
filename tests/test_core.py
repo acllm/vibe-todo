@@ -46,6 +46,32 @@ class TestTask:
         assert task.status == TaskStatus.TODO
         assert task.time_spent == 0
 
+    def test_create_task_with_dependencies(self):
+        """测试创建带依赖关系的任务"""
+        task = Task(
+            title="主任务",
+            description="依赖其他任务",
+            depends_on=["1", "2"]
+        )
+        assert task.depends_on == ["1", "2"]
+
+    def test_create_task_with_ai_fields(self):
+        """测试创建带 AI 字段的任务"""
+        task = Task(
+            title="AI 任务",
+            ai_suggestions="建议优先处理",
+            ai_priority_score=0.85
+        )
+        assert task.ai_suggestions == "建议优先处理"
+        assert task.ai_priority_score == 0.85
+
+    def test_task_defaults(self):
+        """测试任务默认值"""
+        task = Task(title="最小化任务")
+        assert task.depends_on == []
+        assert task.ai_suggestions is None
+        assert task.ai_priority_score is None
+
     def test_mark_done(self):
         task = Task(title="测试任务")
         task.mark_done()
