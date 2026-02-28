@@ -70,6 +70,11 @@ class Task:
         priority: TaskPriority = TaskPriority.MEDIUM,
         tags: Optional[List[str]] = None,
         project: Optional[str] = None,  # 项目/列表名称
+        # Nova 新增：任务依赖关系
+        depends_on: Optional[List[str]] = None,  # 依赖的任务 ID 列表
+        # Nova 新增：AI 相关字段
+        ai_suggestions: Optional[str] = None,  # AI 生成的建议
+        ai_priority_score: Optional[float] = None,  # AI 计算的优先级分数 (0-1)
     ):
         self.id = task_id
         self.title = title
@@ -82,6 +87,10 @@ class Task:
         self.priority = priority
         self.tags = tags or []
         self.project = project
+        # Nova 新增字段
+        self.depends_on = depends_on or []
+        self.ai_suggestions = ai_suggestions
+        self.ai_priority_score = ai_priority_score
     
     @staticmethod
     def _get_now_aware() -> datetime:

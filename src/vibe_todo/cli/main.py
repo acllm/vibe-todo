@@ -11,7 +11,7 @@ from rich.text import Text
 from rich import box
 from rich.prompt import Confirm
 
-from ..core import TaskService, TaskStatus, TaskPriority, Task
+from ..core import TaskService, TaskStatus, TaskPriority, Task, get_ai_helper
 from ..storage.factory import create_repository
 from ..config import get_config
 from ..io import TaskExporter, TaskImporter, ImportConflictStrategy
@@ -77,7 +77,7 @@ def sort_and_group_tasks(tasks: List[Task]) -> Dict[TaskStatus, List[Task]]:
 
 
 @click.group()
-@click.version_option(version="0.2.4")
+@click.version_option(version="0.3.0")
 def cli():
     """Vibe Todo - 简洁实用的任务和工时管理工具"""
     pass
@@ -606,6 +606,197 @@ def batch_project(task_ids, project_name: str):
     service = get_service()
     count = service.batch_update_project(list(task_ids), project_name)
     console.print(f"[green]✓ 成功设置 {count} 个任务的项目为: {project_name}[/green]")
+
+
+@cli.group()
+def ai():
+    """🤖 AI 智能辅助命令"""
+    pass
+
+
+@ai.command(name="analyze")
+@click.argument("task_id")
+def ai_analyze(task_id):
+    """AI 分析任务，提供智能建议"""
+    service = get_service()
+    ai_helper = get_ai_helper()
+    
+    task = service.get_task(task_id)
+    if not task:
+        console.print(f"[red]✗ 未找到任务 ID: {task_id}[/red]")
+        return
+    
+    analysis = ai_helper.analyze_task(task)
+    
+    console.print("\n[bold blue]🤖 AI 任务分析[/bold blue]\n")
+    
+    # 显示任务信息
+    console.print(f"[bold]任务:[/bold] {task.title}")
+    console.print(f"[bold]当前优先级:[/bold] {task.priority.value}")
+    if task.due_date:
+        console.print(f"[bold]截止日期:[/bold] {task.due_date.strftime('%Y-%m-%d')}")
+    
+    console.print()
+    
+    # 显示分析结果
+    console.print(f"[bold]建议优先级:[/bold] {analysis['suggested_priority'].value}")
+    if analysis['suggested_tags']:
+        console.print(f"[bold]建议标签:[/bold] {', '.join(analysis['suggested_tags'])}")
+    console.print(f"[bold]预估工时:[/bold] {analysis['estimated_time']} 分钟")
+    console.print(f"[bold]紧急程度:[/bold] {analysis['urgency_score']:.0%}")
+    
+    if analysis['suggestions']:
+        console.print("\n[bold yellow]💡 建议:[/bold yellow]")
+        for suggestion in analysis['suggestions']:
+            console.print(f"  • {suggestion}")
+
+
+@ai.command(name="next")
+def ai_next():
+    """AI 智能推荐下一个应该处理的任务"""
+    service = get_service()
+    ai_helper = get_ai_helper()
+    
+    tasks = service.list_all()
+    next_task = ai_helper.suggest_next_task(tasks)
+    
+    if not next_task:
+        console.print("[yellow]⚠️ 没有找到可处理的任务（所有任务都已完成或依赖未满足）[/yellow]")
+        return
+    
+    console.print("\n[bold green]🎯 AI 推荐下一个任务:[/bold green]\n")
+    
+    # 显示推荐任务
+    task = next_task
+    
+    table = Table(show_header=False, box=box.SIMPLE)
+    table.add_column("属性", style="cyan")
+    table.add_column("内容")
+    
+    table.add_row("标题", Text(task.title, style="bold"))
+    table.add_row("状态", get_status_display(task.status))
+    table.add_row("优先级", get_priority_display(task.priority))
+    if task.description:
+        table.add_row("描述", task.description)
+    if task.project:
+        table.add_row("项目", task.project)
+    if task.tags:
+        table.add_row("标签", ", ".join(task.tags))
+    if task.due_date:
+        due_text = task.due_date.strftime("%Y-%m-%d")
+        if task.is_overdue():
+            due_text = Text(f"{due_text} (已逾期)", style="red bold")
+        table.add_row("截止日期", due_text)
+    if task.time_spent > 0:
+        table.add_row("已用工时", task.format_time_spent())
+    
+    console.print(table)
+    
+    # 分析原因
+    ai_helper = get_ai_helper()
+    analysis = ai_helper.analyze_task(task)
+    
+    console.print("\n[bold blue]📊 推荐理由:[/bold blue]")
+    reasons = []
+    if task.status == TaskStatus.IN_PROGRESS:
+        reasons.append("这是一个进行中的任务，继续完成它")
+    if analysis['urgency_score'] > 0.7:
+        reasons.append(f"紧急程度较高 ({analysis['urgency_score']:.0%})")
+    if task.priority in [TaskPriority.HIGH, TaskPriority.URGENT]:
+        reasons.append("优先级较高")
+    
+    if reasons:
+        for reason in reasons:
+            console.print(f"  • {reason}")
+    else:
+        console.print("  • 这是一个很好的下一步选择")
+
+
+@ai.command(name="suggest")
+def ai_suggest():
+    """AI 基于上下文生成任务建议"""
+    service = get_service()
+    ai_helper = get_ai_helper()
+    
+    recent_tasks = service.list_all()[-20:]  # 最近 20 个任务
+    suggestions = ai_helper.generate_task_suggestions(recent_tasks)
+    
+    console.print("\n[bold magenta]💡 AI 任务建议:[/bold magenta]\n")
+    
+    if not suggestions:
+        console.print("[yellow]暂时没有建议[/yellow]")
+        return
+    
+    for i, suggestion in enumerate(suggestions, 1):
+        confidence_color = "green" if suggestion.confidence > 0.7 else "yellow" if suggestion.confidence > 0.5 else "dim"
+        
+        panel_title = Text.assemble(
+            f"#{i} ",
+            (f"({suggestion.confidence:.0%} 置信度)", confidence_color)
+        )
+        
+        panel_content = Text.assemble(
+            ("标题: ", "bold"), suggestion.title, "\n",
+            ("优先级: ", "bold"), get_priority_display(suggestion.priority), "\n"
+        )
+        
+        if suggestion.description:
+            panel_content.append(Text.assemble(("描述: ", "bold"), suggestion.description, "\n"))
+        
+        if suggestion.tags:
+            panel_content.append(Text.assemble(("标签: ", "bold"), ", ".join(suggestion.tags), "\n"))
+        
+        if suggestion.reason:
+            panel_content.append(Text.assemble(("原因: ", "dim"), suggestion.reason))
+        
+        console.print(Panel(panel_content, title=panel_title, border_style="magenta"))
+
+
+@ai.command(name="score")
+@click.option("--days", "-d", type=int, default=7, help="统计天数 (默认: 7)")
+def ai_score(days: int):
+    """AI 计算生产力分数和趋势"""
+    service = get_service()
+    ai_helper = get_ai_helper()
+    
+    tasks = service.list_all()
+    score_result = ai_helper.calculate_productivity_score(tasks, days)
+    
+    console.print("\n[bold green]📈 生产力报告[/bold green]\n")
+    
+    # 分数显示
+    score = score_result['score']
+    score_color = "green" if score >= 70 else "yellow" if score >= 40 else "red"
+    
+    score_panel = Panel(
+        Text.assemble(
+            ("生产力分数: ", "bold"),
+            (f"{score}", score_color, "bold"),
+            " / 100"
+        ),
+        title=f"最近 {score_result['period_days']} 天",
+        border_style=score_color
+    )
+    console.print(score_panel)
+    
+    # 详细统计
+    console.print()
+    table = Table(box=box.SIMPLE)
+    table.add_column("指标", style="cyan")
+    table.add_column("数值", style="bold")
+    
+    table.add_row("已完成任务", f"{score_result['completed']} 个")
+    table.add_row("进行中任务", f"{score_result['in_progress']} 个")
+    table.add_row("逾期任务", f"{score_result['overdue']} 个")
+    table.add_row("总工时", f"{score_result['total_time']} 小时")
+    
+    console.print(table)
+    
+    # 趋势分析
+    if score_result['trends']:
+        console.print("\n[bold blue]📊 趋势分析:[/bold blue]")
+        for trend in score_result['trends']:
+            console.print(f"  • {trend}")
 
 
 if __name__ == "__main__":
