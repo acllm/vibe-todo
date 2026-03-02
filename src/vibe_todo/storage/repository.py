@@ -6,7 +6,7 @@ from sqlalchemy import Column, DateTime, Integer, String, create_engine
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
-from ..core.models import Task, TaskStatus, TaskPriority
+from ..core.models import Task, TaskPriority, TaskStatus
 
 Base = declarative_base()
 

@@ -1,16 +1,16 @@
 """Microsoft To Do 后端适配器"""
-from typing import List, Optional
-from datetime import datetime
 import json
 import os
+from datetime import datetime
+from typing import List, Optional
 
-from ..core.models import Task, TaskStatus, TaskPriority
+from ..core.models import Task, TaskPriority, TaskStatus
 from . import TaskRepositoryInterface
 
 
 class MicrosoftRepository(TaskRepositoryInterface):
     """Microsoft To Do 适配器"""
-    
+
     def __init__(self, client_id: str, list_id: str = None, token_cache_path: str = ".mstodo_token"):
         """
         Args:
@@ -19,29 +19,29 @@ class MicrosoftRepository(TaskRepositoryInterface):
             token_cache_path: Token 缓存文件路径
         """
         try:
-            from msal import PublicClientApplication
             import requests
+            from msal import PublicClientApplication
         except ImportError:
             raise ImportError("请安装依赖: uv pip install msal requests")
-        
+
         self.client_id = client_id
         self.list_id = list_id
         self.token_cache_path = token_cache_path
         self.token = None
         self.requests = __import__('requests')
-        
+
         # 初始化 MSAL
         self.app = PublicClientApplication(
             client_id=client_id,
             authority="https://login.microsoftonline.com/common"
         )
-        
+
         self._authenticate()
-        
+
         # 如果没有指定 list_id，获取默认列表
         if not self.list_id:
             self.list_id = self._get_default_list_id()
-    
+
     def _authenticate(self):
         """OAuth2 认证"""
         # 尝试从缓存加载 token
@@ -55,10 +55,10 @@ class MicrosoftRepository(TaskRepositoryInterface):
                         return
             except Exception:
                 pass
-        
+
         # 需要重新认证
         scopes = ["Tasks.ReadWrite", "User.Read"]
-        
+
         # 先尝试静默获取
         accounts = self.app.get_accounts()
         if accounts:
@@ -67,16 +67,16 @@ class MicrosoftRepository(TaskRepositoryInterface):
                 self.token = result["access_token"]
                 self._save_token(result)
                 return
-        
+
         # 交互式认证
         result = self.app.acquire_token_interactive(scopes=scopes)
-        
+
         if "access_token" in result:
             self.token = result["access_token"]
             self._save_token(result)
         else:
             raise RuntimeError(f"认证失败: {result.get('error_description', 'Unknown error')}")
-    
+
     def _verify_token(self) -> bool:
         """验证 token 是否有效"""
         try:
@@ -89,7 +89,7 @@ class MicrosoftRepository(TaskRepositoryInterface):
             return response.status_code == 200
         except Exception:
             return False
-    
+
     def _save_token(self, result: dict):
         """保存 token 到缓存"""
         try:
@@ -100,7 +100,7 @@ class MicrosoftRepository(TaskRepositoryInterface):
                 }, f)
         except Exception:
             pass
-    
+
     def _get_default_list_id(self) -> str:
         """获取默认任务列表 ID"""
         headers = {"Authorization": f"Bearer {self.token}"}
@@ -108,7 +108,7 @@ class MicrosoftRepository(TaskRepositoryInterface):
             "https://graph.microsoft.com/v1.0/me/todo/lists",
             headers=headers
         )
-        
+
         if response.status_code == 200:
             lists = response.json()["value"]
             # 查找默认的 "Tasks" 列表
@@ -118,9 +118,9 @@ class MicrosoftRepository(TaskRepositoryInterface):
             # 如果没有找到，返回第一个
             if lists:
                 return lists[0]["id"]
-        
+
         raise RuntimeError("无法获取 Microsoft To Do 列表")
-    
+
     def _task_to_mstodo(self, task: Task) -> dict:
         """将 Task 转换为 Microsoft To Do 格式"""
         body = {
@@ -128,27 +128,27 @@ class MicrosoftRepository(TaskRepositoryInterface):
             "importance": self._map_priority_to_mstodo(task.priority),
             "status": self._map_status_to_mstodo(task.status),
         }
-        
+
         # 描述
         if task.description:
             body["body"] = {
                 "content": task.description,
                 "contentType": "text"
             }
-        
+
         # 截止日期
         if task.due_date:
             body["dueDateTime"] = {
                 "dateTime": task.due_date.isoformat(),
                 "timeZone": "UTC"
             }
-        
+
         # 标签（Microsoft To Do 用 categories）
         if task.tags:
             body["categories"] = task.tags
-        
+
         return body
-    
+
     def _mstodo_to_task(self, mstodo_task: dict) -> Task:
         """将 Microsoft To Do 任务转换为 Task 对象"""
         # 提取基本信息
@@ -156,22 +156,22 @@ class MicrosoftRepository(TaskRepositoryInterface):
         description = ""
         if mstodo_task.get("body"):
             description = mstodo_task["body"].get("content", "")
-        
+
         # 状态
         status = self._map_mstodo_to_status(mstodo_task.get("status", "notStarted"))
-        
+
         # 优先级
         priority = self._map_mstodo_to_priority(mstodo_task.get("importance", "normal"))
-        
+
         # 截止日期
         due_date = None
         if mstodo_task.get("dueDateTime"):
             due_str = mstodo_task["dueDateTime"]["dateTime"]
             due_date = datetime.fromisoformat(due_str.replace("Z", "+00:00"))
-        
+
         # 标签
         tags = mstodo_task.get("categories", [])
-        
+
         # 时间戳
         created_at = datetime.fromisoformat(
             mstodo_task["createdDateTime"].replace("Z", "+00:00")
@@ -179,13 +179,13 @@ class MicrosoftRepository(TaskRepositoryInterface):
         updated_at = datetime.fromisoformat(
             mstodo_task["lastModifiedDateTime"].replace("Z", "+00:00")
         )
-        
+
         # Microsoft To Do 不支持工时，使用扩展属性存储（这里简化处理）
         time_spent = 0
-        
+
         # Microsoft To Do 的项目概念不明确，使用列表名称
         project = None
-        
+
         return Task(
             task_id=mstodo_task["id"],
             title=title,
@@ -199,7 +199,7 @@ class MicrosoftRepository(TaskRepositoryInterface):
             created_at=created_at,
             updated_at=updated_at,
         )
-    
+
     def _map_status_to_mstodo(self, status: TaskStatus) -> str:
         """映射状态到 Microsoft To Do"""
         mapping = {
@@ -208,7 +208,7 @@ class MicrosoftRepository(TaskRepositoryInterface):
             TaskStatus.DONE: "completed",
         }
         return mapping[status]
-    
+
     def _map_mstodo_to_status(self, mstodo_status: str) -> TaskStatus:
         """映射 Microsoft To Do 状态到内部状态"""
         mapping = {
@@ -217,7 +217,7 @@ class MicrosoftRepository(TaskRepositoryInterface):
             "completed": TaskStatus.DONE,
         }
         return mapping.get(mstodo_status, TaskStatus.TODO)
-    
+
     def _map_priority_to_mstodo(self, priority: TaskPriority) -> str:
         """映射优先级到 Microsoft To Do"""
         mapping = {
@@ -227,7 +227,7 @@ class MicrosoftRepository(TaskRepositoryInterface):
             TaskPriority.URGENT: "high",  # Microsoft 只有三级
         }
         return mapping[priority]
-    
+
     def _map_mstodo_to_priority(self, mstodo_priority: str) -> TaskPriority:
         """映射 Microsoft To Do 优先级到内部优先级"""
         mapping = {
@@ -236,7 +236,7 @@ class MicrosoftRepository(TaskRepositoryInterface):
             "high": TaskPriority.HIGH,
         }
         return mapping.get(mstodo_priority, TaskPriority.MEDIUM)
-    
+
     def save(self, task: Task) -> Task:
         """保存或更新任务"""
         headers = {
@@ -244,7 +244,7 @@ class MicrosoftRepository(TaskRepositoryInterface):
             "Content-Type": "application/json"
         }
         body = self._task_to_mstodo(task)
-        
+
         if task.id:
             # 更新现有任务
             url = f"https://graph.microsoft.com/v1.0/me/todo/lists/{self.list_id}/tasks/{task.id}"
@@ -253,35 +253,35 @@ class MicrosoftRepository(TaskRepositoryInterface):
             # 创建新任务
             url = f"https://graph.microsoft.com/v1.0/me/todo/lists/{self.list_id}/tasks"
             response = self.requests.post(url, json=body, headers=headers)
-        
+
         if response.status_code in [200, 201]:
             return self._mstodo_to_task(response.json())
         else:
             raise RuntimeError(f"保存任务失败: {response.text}")
-    
+
     def get_by_id(self, task_id: str) -> Optional[Task]:
         """根据 ID 获取任务"""
         headers = {"Authorization": f"Bearer {self.token}"}
         url = f"https://graph.microsoft.com/v1.0/me/todo/lists/{self.list_id}/tasks/{task_id}"
-        
+
         response = self.requests.get(url, headers=headers)
-        
+
         if response.status_code == 200:
             return self._mstodo_to_task(response.json())
         return None
-    
+
     def list_all(self, status: Optional[TaskStatus] = None) -> List[Task]:
         """列出所有任务，可按状态筛选"""
         headers = {"Authorization": f"Bearer {self.token}"}
         url = f"https://graph.microsoft.com/v1.0/me/todo/lists/{self.list_id}/tasks"
-        
+
         # Microsoft Graph API 支持 $filter
         if status:
             mstodo_status = self._map_status_to_mstodo(status)
             url += f"?$filter=status eq '{mstodo_status}'"
-        
+
         response = self.requests.get(url, headers=headers)
-        
+
         if response.status_code == 200:
             tasks = []
             for mstodo_task in response.json()["value"]:
@@ -289,11 +289,11 @@ class MicrosoftRepository(TaskRepositoryInterface):
             return tasks
         else:
             raise RuntimeError(f"查询任务失败: {response.text}")
-    
+
     def delete(self, task_id: str) -> bool:
         """删除任务"""
         headers = {"Authorization": f"Bearer {self.token}"}
         url = f"https://graph.microsoft.com/v1.0/me/todo/lists/{self.list_id}/tasks/{task_id}"
-        
+
         response = self.requests.delete(url, headers=headers)
         return response.status_code == 204

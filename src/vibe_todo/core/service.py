@@ -1,8 +1,8 @@
 """核心业务逻辑服务"""
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
 
-from .models import Task, TaskStatus, TaskPriority
+from .models import Task, TaskPriority, TaskStatus
 
 
 class TaskService:
@@ -113,9 +113,9 @@ class TaskService:
             "total_time_minutes": total_time,
             "total_time_hours": total_time / 60,
         }
-    
+
     # 批量操作方法
-    
+
     def batch_update_status(self, task_ids: List[str], status: TaskStatus) -> int:
         """批量更新任务状态"""
         success_count = 0
@@ -127,7 +127,7 @@ class TaskService:
                 self.repository.save(task)
                 success_count += 1
         return success_count
-    
+
     def batch_delete(self, task_ids: List[str]) -> int:
         """批量删除任务"""
         success_count = 0
@@ -135,7 +135,7 @@ class TaskService:
             if self.repository.delete(task_id):
                 success_count += 1
         return success_count
-    
+
     def batch_add_tags(self, task_ids: List[str], tags: List[str]) -> int:
         """批量添加标签"""
         success_count = 0
@@ -150,7 +150,7 @@ class TaskService:
                 self.repository.save(task)
                 success_count += 1
         return success_count
-    
+
     def batch_update_priority(self, task_ids: List[str], priority: TaskPriority) -> int:
         """批量设置优先级"""
         success_count = 0
@@ -162,7 +162,7 @@ class TaskService:
                 self.repository.save(task)
                 success_count += 1
         return success_count
-    
+
     def batch_update_project(self, task_ids: List[str], project: str) -> int:
         """批量设置项目"""
         success_count = 0
