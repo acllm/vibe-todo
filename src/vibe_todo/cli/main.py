@@ -8,7 +8,7 @@ import click
 from rich import box
 from rich.console import Console
 from rich.panel import Panel
-from rich.prompt import Confirm
+from rich.prompt import Confirm, Prompt
 from rich.table import Table
 from rich.text import Text
 
@@ -375,6 +375,163 @@ def show(task_id: str):
         box=box.ROUNDED,
     )
     console.print(panel)
+
+
+@cli.command()
+@click.argument("task_id")
+def edit(task_id: str):
+    """交互式编辑任务
+    
+    逐个字段编辑任务，可以选择跳过不修改的字段。
+    """
+    service = get_service()
+    task = service.get_task(task_id)
+    
+    if not task:
+        console.print(f"[red]✗ 任务 #{task_id} 不存在[/red]")
+        return
+    
+    console.print()
+    console.print(f"[bold cyan]编辑任务 #{task.id}[/bold cyan]")
+    console.print(f"[dim]按 Enter 保持原值，输入新值修改[/dim]")
+    console.print()
+    
+    # 编辑标题
+    new_title = Prompt.ask(
+        f"[bold]标题[/bold]",
+        default=task.title
+    )
+    
+    # 编辑描述
+    new_description = Prompt.ask(
+        f"[bold]描述[/bold]",
+        default=task.description or "(空)"
+    )
+    if new_description == "(空)":
+        new_description = ""
+    
+    # 编辑状态
+    status_options = ["todo", "in_progress", "done"]
+    status_display = {
+        "todo": "⭕ 待处理",
+        "in_progress": "🔄 进行中",
+        "done": "✅ 已完成"
+    }
+    current_status = task.status.value
+    new_status_str = Prompt.ask(
+        f"[bold]状态[/bold] [dim](可选: todo, in_progress, done)[/dim]",
+        default=current_status,
+        choices=status_options,
+        show_default=False
+    )
+    console.print(f"  → {status_display.get(new_status_str, new_status_str)}")
+    new_status = TaskStatus(new_status_str)
+    
+    # 编辑优先级
+    priority_options = ["low", "medium", "high", "urgent"]
+    priority_display = {
+        "low": "🟢 低",
+        "medium": "🟡 中",
+        "high": "🟠 高",
+        "urgent": "🔴 紧急"
+    }
+    current_priority = task.priority.value
+    new_priority_str = Prompt.ask(
+        f"[bold]优先级[/bold] [dim](可选: low, medium, high, urgent)[/dim]",
+        default=current_priority,
+        choices=priority_options,
+        show_default=False
+    )
+    console.print(f"  → {priority_display.get(new_priority_str, new_priority_str)}")
+    new_priority = TaskPriority(new_priority_str)
+    
+    # 编辑截止日期
+    current_due = task.due_date.strftime("%Y-%m-%d") if task.due_date else "(无)"
+    new_due_str = Prompt.ask(
+        f"[bold]截止日期[/bold] [dim](格式: YYYY-MM-DD)[/dim]",
+        default=current_due
+    )
+    new_due = None
+    if new_due_str != "(无)":
+        try:
+            new_due = datetime.strptime(new_due_str, "%Y-%m-%d")
+        except ValueError:
+            console.print(f"[yellow]⚠  日期格式错误，保持原值[/yellow]")
+            new_due = task.due_date
+    
+    # 编辑标签
+    current_tags = ", ".join(task.tags) if task.tags else "(无)"
+    new_tags_str = Prompt.ask(
+        f"[bold]标签[/bold] [dim](逗号分隔)[/dim]",
+        default=current_tags
+    )
+    new_tags = []
+    if new_tags_str != "(无)":
+        new_tags = [t.strip() for t in new_tags_str.split(",") if t.strip()]
+    
+    # 编辑项目
+    current_project = task.project or "(无)"
+    new_project = Prompt.ask(
+        f"[bold]项目[/bold]",
+        default=current_project
+    )
+    if new_project == "(无)":
+        new_project = None
+    
+    # 确认修改
+    console.print()
+    console.print("[bold]修改预览:[/bold]")
+    
+    changes = []
+    if new_title != task.title:
+        changes.append(f"  标题: [yellow]{task.title}[/yellow] → [green]{new_title}[/green]")
+    if new_description != task.description:
+        old_desc = task.description or "(空)"
+        new_desc = new_description or "(空)"
+        changes.append(f"  描述: [yellow]{old_desc}[/yellow] → [green]{new_desc}[/green]")
+    if new_status != task.status:
+        changes.append(f"  状态: [yellow]{status_display[task.status.value]}[/yellow] → [green]{status_display[new_status.value]}[/green]")
+    if new_priority != task.priority:
+        changes.append(f"  优先级: [yellow]{priority_display[task.priority.value]}[/yellow] → [green]{priority_display[new_priority.value]}[/green]")
+    if new_due != task.due_date:
+        old_due = task.due_date.strftime("%Y-%m-%d") if task.due_date else "(无)"
+        new_due_display = new_due.strftime("%Y-%m-%d") if new_due else "(无)"
+        changes.append(f"  截止日期: [yellow]{old_due}[/yellow] → [green]{new_due_display}[/green]")
+    if set(new_tags) != set(task.tags):
+        old_tags = ", ".join(task.tags) if task.tags else "(无)"
+        new_tags_display = ", ".join(new_tags) if new_tags else "(无)"
+        changes.append(f"  标签: [yellow]{old_tags}[/yellow] → [green]{new_tags_display}[/green]")
+    if new_project != task.project:
+        old_project = task.project or "(无)"
+        new_project_display = new_project or "(无)"
+        changes.append(f"  项目: [yellow]{old_project}[/yellow] → [green]{new_project_display}[/green]")
+    
+    if not changes:
+        console.print("[dim]  没有修改[/dim]")
+        console.print()
+        console.print("[yellow]⚠  没有任何修改，取消保存[/yellow]")
+        return
+    
+    for change in changes:
+        console.print(change)
+    
+    console.print()
+    if Confirm.ask("[bold]确认保存修改？[/bold]"):
+        # 更新任务
+        task.title = new_title
+        task.description = new_description
+        task.status = new_status
+        task.priority = new_priority
+        task.due_date = new_due
+        task.tags = new_tags
+        task.project = new_project
+        
+        updated_task = service.update_task(task)
+        console.print()
+        console.print(f"[green]✓ 任务已更新:[/green] [bold]#{updated_task.id}[/bold] {updated_task.title}")
+    else:
+        console.print()
+        console.print("[dim]已取消[/dim]")
 
 
 @cli.command()

@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.6] - 2026-03-02
+
+### Added
+
+**交互式编辑功能**
+
+- 全新的 `vibe edit <id>` 命令
+  - 交互式问答方式编辑任务
+  - 显示当前值，按 Enter 保持原样
+  - 支持编辑所有字段：标题、描述、状态、优先级、项目、标签、截止日期
+  - 友好的用户体验，清晰的提示和确认
+
+- TaskService.update_task() 增强
+  - 支持两种调用方式（向后兼容）
+    - 方式1：`update_task(task_id, title=..., description=...)` （原有的参数方式）
+    - 方式2：`update_task(task_object)` （新的完整对象方式）
+  - 保持 100% API 兼容性
+
+### Technical
+
+- 新增 6 个单元测试（交互式编辑功能）
+- 总测试用例数：78 个，71 个通过，7 个跳过 ✅
+- 测试覆盖：完整对象更新、参数更新、边界情况
+- 向后兼容：现有功能不受影响
+
 ## [0.2.5] - 2026-03-02
 
 ### Added

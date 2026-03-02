@@ -55,19 +55,33 @@ class TaskService:
         """列出任务，可按状态筛选"""
         return self.repository.list_all(status=status)
 
-    def update_task(self, task_id: int, title: Optional[str] = None,
+    def update_task(self, task_or_id, title: Optional[str] = None,
                    description: Optional[str] = None) -> Optional[Task]:
-        """更新任务信息"""
-        task = self.repository.get_by_id(task_id)
-        if not task:
-            return None
+        """更新任务信息
+        
+        支持两种调用方式：
+        1. 传统方式：update_task(task_id, title="新标题", description="新描述")
+        2. 对象方式：update_task(task_object) - 完整更新所有字段
+        """
+        if isinstance(task_or_id, Task):
+            # 直接传入Task对象 - 完整更新
+            task = task_or_id
+            task.updated_at = datetime.now()
+            return self.repository.save(task)
+        else:
+            # 传统方式 - 只更新指定字段
+            task_id = task_or_id
+            task = self.repository.get_by_id(task_id)
+            if not task:
+                return None
 
-        if title is not None:
-            task.title = title
-        if description is not None:
-            task.description = description
+            if title is not None:
+                task.title = title
+            if description is not None:
+                task.description = description
+            task.updated_at = datetime.now()
 
-        return self.repository.save(task)
+            return self.repository.save(task)
 
     def mark_done(self, task_id: int) -> Optional[Task]:
         """标记任务为完成"""
