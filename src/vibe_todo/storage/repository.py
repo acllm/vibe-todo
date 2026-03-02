@@ -2,11 +2,12 @@
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import Column, DateTime, Integer, String, create_engine
+from sqlalchemy import Column, DateTime, Integer, String, create_engine, text
 from sqlalchemy import Enum as SQLEnum
 from sqlalchemy.orm import Session, declarative_base, sessionmaker
 
-from ..core.models import Task, TaskStatus, TaskPriority
+from ..adapters import TaskFilter, TaskRepositoryInterface
+from ..core.models import Task, TaskPriority, TaskStatus
 
 Base = declarative_base()
 
@@ -62,7 +63,7 @@ class TaskModel(Base):
         )
 
 
-class TaskRepository:
+class TaskRepository(TaskRepositoryInterface):
     """任务仓储"""
 
     def __init__(self, db_path: str = "vibe_todo.db"):
@@ -72,7 +73,64 @@ class TaskRepository:
         """
         self.engine = create_engine(f"sqlite:///{db_path}")
         Base.metadata.create_all(self.engine)
+        self._create_fts_table()
         self.SessionLocal = sessionmaker(bind=self.engine)
+
+    def _create_fts_table(self):
+        """创建 FTS5 全文搜索虚拟表"""
+        with self.engine.connect() as conn:
+            # 检查 FTS5 支持
+            result = conn.execute(text("SELECT sqlite_version()"))
+            version = result.fetchone()[0]
+
+            # 创建 FTS5 虚拟表
+            conn.execute(text("""
+                CREATE VIRTUAL TABLE IF NOT EXISTS tasks_fts 
+                USING fts5(
+                    title, 
+                    description, 
+                    tags, 
+                    project,
+                    content=tasks,
+                    content_rowid=id
+                )
+            """))
+
+            # 创建触发器以保持 FTS 表同步
+            conn.execute(text("""
+                CREATE TRIGGER IF NOT EXISTS tasks_ai AFTER INSERT ON tasks
+                BEGIN
+                    INSERT INTO tasks_fts(rowid, title, description, tags, project)
+                    VALUES (new.id, new.title, new.description, new.tags, new.project);
+                END;
+            """))
+
+            conn.execute(text("""
+                CREATE TRIGGER IF NOT EXISTS tasks_ad AFTER DELETE ON tasks
+                BEGIN
+                    INSERT INTO tasks_fts(tasks_fts, rowid, title, description, tags, project)
+                    VALUES ('delete', old.id, old.title, old.description, old.tags, old.project);
+                END;
+            """))
+
+            conn.execute(text("""
+                CREATE TRIGGER IF NOT EXISTS tasks_au AFTER UPDATE ON tasks
+                BEGIN
+                    INSERT INTO tasks_fts(tasks_fts, rowid, title, description, tags, project)
+                    VALUES ('delete', old.id, old.title, old.description, old.tags, old.project);
+                    INSERT INTO tasks_fts(rowid, title, description, tags, project)
+                    VALUES (new.id, new.title, new.description, new.tags, new.project);
+                END;
+            """))
+
+            conn.commit()
+
+            # 初始填充 FTS 表（如果已有数据）
+            conn.execute(text("""
+                INSERT OR REPLACE INTO tasks_fts(rowid, title, description, tags, project)
+                SELECT id, title, description, tags, project FROM tasks
+            """))
+            conn.commit()
 
     def _get_session(self) -> Session:
         """获取数据库会话"""
@@ -140,5 +198,100 @@ class TaskRepository:
                 session.commit()
                 return True
             return False
+        finally:
+            session.close()
+
+    def search(self, query: str) -> List[Task]:
+        """全文搜索任务（使用 FTS5）
+        
+        Args:
+            query: 搜索关键词
+            
+        Returns:
+            匹配的任务列表，按相关性排序
+        """
+        session = self._get_session()
+        try:
+            # 使用 FTS5 搜索
+            sql = text("""
+                SELECT t.* FROM tasks t
+                INNER JOIN tasks_fts fts ON t.id = fts.rowid
+                WHERE tasks_fts MATCH :query
+                ORDER BY rank
+            """)
+            result = session.execute(sql, {"query": query})
+            db_tasks = []
+            for row in result:
+                # 通过 ORM 查询获取完整的 TaskModel 对象
+                db_task = session.query(TaskModel).filter(TaskModel.id == row.id).first()
+                if db_task:
+                    db_tasks.append(db_task)
+
+            # 如果 FTS 搜索没有结果，回退到简单的 LIKE 搜索
+            if not db_tasks:
+                query_lower = f"%{query.lower()}%"
+                db_tasks = session.query(TaskModel).filter(
+                    (TaskModel.title.ilike(query_lower)) |
+                    (TaskModel.description.ilike(query_lower)) |
+                    (TaskModel.tags.ilike(query_lower)) |
+                    (TaskModel.project.ilike(query_lower))
+                ).all()
+
+            return [db_task.to_domain() for db_task in db_tasks]
+        except Exception:
+            # 如果 FTS 出错，回退到默认实现
+            return super().search(query)
+        finally:
+            session.close()
+
+    def filter_tasks(self, task_filter: TaskFilter) -> List[Task]:
+        """高级过滤任务（SQLite 优化实现）
+        
+        Args:
+            task_filter: 过滤条件
+            
+        Returns:
+            符合条件的任务列表
+        """
+        if not task_filter.has_any_filter():
+            return self.list_all()
+
+        session = self._get_session()
+        try:
+            query = session.query(TaskModel)
+
+            if task_filter.status:
+                query = query.filter(TaskModel.status == task_filter.status)
+
+            if task_filter.priority:
+                query = query.filter(TaskModel.priority == task_filter.priority)
+
+            if task_filter.project:
+                query = query.filter(TaskModel.project == task_filter.project)
+
+            if task_filter.tags:
+                if task_filter.tags_operator == "AND":
+                    for tag in task_filter.tags:
+                        query = query.filter(TaskModel.tags.contains(tag))
+                else:
+                    from sqlalchemy import or_
+                    tag_filters = [TaskModel.tags.contains(tag) for tag in task_filter.tags]
+                    query = query.filter(or_(*tag_filters))
+
+            db_tasks = query.order_by(TaskModel.created_at.desc()).all()
+            tasks = [db_task.to_domain() for db_task in db_tasks]
+
+            # 内存过滤（处理需要 Python 逻辑的条件）
+            if task_filter.overdue_only:
+                tasks = [t for t in tasks if t.is_overdue()]
+
+            if task_filter.due_in_days is not None:
+                tasks = [
+                    t for t in tasks
+                    if t.due_date and t.days_until_due() is not None
+                    and 0 <= t.days_until_due() <= task_filter.due_in_days
+                ]
+
+            return tasks
         finally:
             session.close()

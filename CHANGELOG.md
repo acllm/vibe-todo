@@ -5,6 +5,44 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - 2026-03-02
+
+### Added
+
+**全文搜索和高级过滤**
+
+- SQLite FTS5 全文搜索支持
+  - 在标题、描述、标签和项目中搜索
+  - 按相关性排序结果
+  - 自动回退到 LIKE 搜索（如果 FTS5 不可用）
+
+- 高级过滤功能
+  - 按状态筛选
+  - 按优先级筛选
+  - 按项目筛选
+  - 按标签筛选（支持 AND/OR 逻辑）
+  - 只显示逾期任务
+  - 按到期天数筛选
+  - 多条件组合筛选
+
+- 新 CLI 命令
+  - `vibe search <query>` - 全文搜索任务，支持所有过滤选项
+  - `vibe list` 命令增强 - 新增所有高级过滤选项
+
+- 架构改进
+  - `TaskFilter` 数据类 - 统一的过滤条件表示
+  - `TaskRepositoryInterface` 扩展 - 新增 `search()`, `filter_tasks()`, `search_and_filter()` 方法
+  - 默认实现 - 所有适配器都可以使用内存中的搜索和过滤
+  - SQLite 优化 - 利用数据库查询进行高效过滤
+
+### Technical
+
+- 新增 18 个单元测试（搜索和过滤功能）
+- 总测试用例数：72 个，65 个通过，7 个跳过 ✅
+- 测试覆盖：搜索、过滤、组合搜索过滤、各种边界情况
+- FTS5 虚拟表自动创建和同步触发器
+- 向后兼容：现有功能不受影响
+
 ## [0.2.4] - 2025-11-20
 
 ### Fixed

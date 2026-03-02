@@ -100,6 +100,34 @@ vibe import tasks.csv --format csv                # 从CSV导入
 vibe import tasks.json --strategy create_new      # 导入策略
 ```
 
+#### 搜索和过滤 (v0.2.5+)
+
+```bash
+# 全文搜索任务
+vibe search "文档"
+
+# 搜索 + 状态过滤
+vibe search "bug" -s todo
+
+# 搜索 + 多条件过滤
+vibe search "项目" -s in_progress --priority high -p "Vibe Todo"
+
+# 按标签过滤（OR 逻辑）
+vibe list -t "重要,紧急" --tags-operator OR
+
+# 按标签过滤（AND 逻辑）
+vibe list -t "文档,重要" --tags-operator AND
+
+# 只显示逾期任务
+vibe list --overdue
+
+# 显示 3 天内到期的任务
+vibe list --due-in-days 3
+
+# 组合多个过滤条件
+vibe list -s todo --priority high -p "Vibe Todo" --overdue
+```
+
 #### 批量操作 (v0.2.0+)
 
 ```bash
@@ -226,11 +254,18 @@ ruff check .
 
 ## 📊 项目状态
 
-**当前版本**: v0.2.2  
-**开发状态**: ✅ 稳定 (Stable)  
-**测试覆盖**: 54 个测试用例全部通过
+**当前版本**: v0.2.5  
+**开发状态**: ✅ 活跃 (Active)  
+**测试覆盖**: 72 个测试用例（65 个通过，7 个跳过）
 
 ### 已实现功能
+
+#### v0.2.5 (2026-03-02)
+
+- 🔍 **全文搜索**：SQLite FTS5 全文搜索，支持标题、描述、标签、项目
+-- 🔎 **高级过滤**：多条件组合筛选（状态/优先级/项目/标签/逾期/到期天数）
+-- 🆕 **搜索命令**：`vibe search` 支持搜索和所有过滤选项
+-- 📈 **列表增强**：`vibe list` 现在支持所有高级过滤选项
 
 #### v0.2.2 (2025-11-20)
 

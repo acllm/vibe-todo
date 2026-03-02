@@ -6,17 +6,16 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Optional
 
-from ..core.models import Task
 from ..core.service import TaskService
 from .formats import ExportFormat, task_to_dict
 
 
 class TaskExporter:
     """任务导出器"""
-    
+
     def __init__(self, service: TaskService):
         self.service = service
-    
+
     def export_to_json(
         self,
         output_path: str,
@@ -41,10 +40,10 @@ class TaskExporter:
                     tasks.append(task)
         else:
             tasks = self.service.list_tasks()
-        
+
         # 转换为字典
         task_dicts = [task_to_dict(task) for task in tasks]
-        
+
         # 构建导出数据
         export_data = {
             "version": "0.2.0",
@@ -52,16 +51,16 @@ class TaskExporter:
             "backend": self.service.repository.__class__.__name__,
             "tasks": task_dicts,
         }
-        
+
         # 写入文件
         output_file = Path(output_path)
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        
+
         with open(output_file, "w", encoding="utf-8") as f:
             json.dump(export_data, f, ensure_ascii=False, indent=2)
-        
+
         return len(tasks)
-    
+
     def export_to_csv(
         self,
         output_path: str,
@@ -86,10 +85,10 @@ class TaskExporter:
                     tasks.append(task)
         else:
             tasks = self.service.list_tasks()
-        
+
         if not tasks:
             return 0
-        
+
         # CSV 字段定义
         fieldnames = [
             "title",
@@ -101,15 +100,15 @@ class TaskExporter:
             "project",
             "time_spent_minutes",
         ]
-        
+
         # 写入文件
         output_file = Path(output_path)
         output_file.parent.mkdir(parents=True, exist_ok=True)
-        
+
         with open(output_file, "w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
-            
+
             for task in tasks:
                 row = {
                     "title": task.title,
@@ -122,9 +121,9 @@ class TaskExporter:
                     "time_spent_minutes": task.time_spent,
                 }
                 writer.writerow(row)
-        
+
         return len(tasks)
-    
+
     def export_tasks(
         self,
         output_path: str,

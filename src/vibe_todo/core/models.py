@@ -1,7 +1,7 @@
 """核心领域模型"""
 from datetime import datetime, timezone
 from enum import Enum
-from typing import Optional, List
+from typing import List, Optional
 
 
 class TaskStatus(Enum):
@@ -9,7 +9,7 @@ class TaskStatus(Enum):
     TODO = "todo"
     IN_PROGRESS = "in_progress"
     DONE = "done"
-    
+
     def sort_order(self) -> int:
         """获取状态的排序优先级（数字越小越靠前）
         
@@ -21,7 +21,7 @@ class TaskStatus(Enum):
             TaskStatus.DONE: 3,
         }
         return order_map[self]
-    
+
     def display_name(self) -> str:
         """获取状态的中文显示名称"""
         name_map = {
@@ -38,7 +38,7 @@ class TaskPriority(Enum):
     MEDIUM = "medium"
     HIGH = "high"
     URGENT = "urgent"
-    
+
     def sort_order(self) -> int:
         """获取优先级的排序优先级（数字越小越靠前）
         
@@ -82,12 +82,12 @@ class Task:
         self.priority = priority
         self.tags = tags or []
         self.project = project
-    
+
     @staticmethod
     def _get_now_aware() -> datetime:
         """获取当前时间（带时区信息）"""
         return datetime.now(timezone.utc)
-    
+
     @staticmethod
     def _make_aware(dt: datetime) -> datetime:
         """确保 datetime 对象带时区信息"""
@@ -119,7 +119,7 @@ class Task:
         if hours > 0:
             return f"{hours}h {minutes}m"
         return f"{minutes}m"
-    
+
     def is_overdue(self) -> bool:
         """检查是否逾期"""
         if self.due_date and self.status != TaskStatus.DONE:
@@ -128,7 +128,7 @@ class Task:
             due = self._make_aware(self.due_date)
             return now > due
         return False
-    
+
     def days_until_due(self) -> Optional[int]:
         """距离截止日期的天数"""
         if self.due_date:
