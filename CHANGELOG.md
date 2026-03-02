@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-03-02
+
+### Added
+
+**视图增强 - 第一阶段**
+
+- 全新的视图模块 `src/vibe_todo/cli/views.py`
+  - `TaskCardView` - 美观的卡片视图展示
+  - `TaskTimelineView` - 时间线视图（预留实现）
+  - `TaskBoardView` - 看板视图（预留实现）
+
+- `vibe list` 命令增强
+  - 新增 `--view` 选项，支持多种视图类型
+    - `table` - 默认表格视图（保持不变）
+    - `card` - 美观的卡片视图 ✨
+    - `timeline` - 时间线视图（待实现）
+    - `board` - 看板视图（待实现）
+
+- 卡片视图特性
+  - 完整的任务信息展示
+  - 富文本格式和颜色
+  - 状态和优先级高亮
+  - 截止日期提醒
+  - 标签展示
+
+### Technical
+
+- 新增 8 个单元测试（视图功能）
+- 总测试用例数：86 个，79 个通过，7 个跳过 ✅
+- 重构：将 `get_status_display()` 和 `get_priority_display()` 移到 views.py 避免循环导入
+- 向后兼容：默认视图仍为 table，现有功能不受影响
+
 ## [0.2.6] - 2026-03-02
 
 ### Added

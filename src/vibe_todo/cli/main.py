@@ -18,6 +18,10 @@ from ..core import Task, TaskPriority, TaskService, TaskStatus
 from ..io import ImportConflictStrategy, TaskExporter, TaskImporter
 from ..io.formats import ExportFormat
 from ..storage.factory import create_repository
+from .views import (
+    TaskCardView, TaskTimelineView, TaskBoardView,
+    get_status_display, get_priority_display
+)
 
 console = Console()
 
@@ -26,29 +30,6 @@ def get_service() -> TaskService:
     """获取任务服务实例"""
     repository = create_repository()
     return TaskService(repository)
-
-
-def get_status_display(status: TaskStatus) -> Text:
-    """获取状态的富文本显示"""
-    status_map = {
-        TaskStatus.TODO: ("⭕ 待处理", "cyan"),
-        TaskStatus.IN_PROGRESS: ("🔄 进行中", "yellow"),
-        TaskStatus.DONE: ("✅ 已完成", "green"),
-    }
-    text, color = status_map[status]
-    return Text(text, style=color)
-
-
-def get_priority_display(priority: TaskPriority) -> Text:
-    """获取优先级的富文本显示"""
-    priority_map = {
-        TaskPriority.LOW: ("🟢 低", "green"),
-        TaskPriority.MEDIUM: ("🟡 中", "yellow"),
-        TaskPriority.HIGH: ("🟠 高", "orange1"),
-        TaskPriority.URGENT: ("🔴 紧急", "red bold"),
-    }
-    text, color = priority_map[priority]
-    return Text(text, style=color)
 
 
 def sort_and_group_tasks(tasks: List[Task]) -> Dict[TaskStatus, List[Task]]:
@@ -131,8 +112,10 @@ def add(title: str, description: str, priority: str, due: str, tags: str, projec
               help="标签筛选逻辑（AND/OR，默认 OR）")
 @click.option("--overdue", is_flag=True, help="只显示逾期任务")
 @click.option("--due-in-days", type=int, help="只显示指定天数内到期的任务")
+@click.option("--view", type=click.Choice(["table", "card", "timeline", "board"]), default="table",
+              help="视图类型（table/card/timeline/board，默认 table）")
 def list(status: str, priority: str, project: str, tags: str, tags_operator: str,
-         overdue: bool, due_in_days: int):
+         overdue: bool, due_in_days: int, view: str):
     """列出所有任务（按状态和优先级分组展示，支持高级筛选）"""
     repo = create_repository()
 
@@ -167,65 +150,80 @@ def list(status: str, priority: str, project: str, tags: str, tags_operator: str
         console.print("[dim]暂无任务[/dim]")
         return
 
-    # 对任务进行分组和排序
-    grouped_tasks = sort_and_group_tasks(tasks)
+    # 根据视图类型展示
+    if view == "card":
+        # 卡片视图
+        card_view = TaskCardView()
+        card_view.display_list(tasks)
+    elif view == "timeline":
+        # 时间线视图
+        timeline_view = TaskTimelineView()
+        timeline_view.display(tasks)
+    elif view == "board":
+        # 看板视图
+        board_view = TaskBoardView()
+        board_view.display(tasks)
+    else:
+        # 默认表格视图
+        # 对任务进行分组和排序
+        grouped_tasks = sort_and_group_tasks(tasks)
 
-    # 按状态组展示任务
-    for task_status in sorted(grouped_tasks.keys(), key=lambda s: s.sort_order()):
-        status_tasks = grouped_tasks[task_status]
+        # 按状态组展示任务
+        for task_status in sorted(grouped_tasks.keys(), key=lambda s: s.sort_order()):
+            status_tasks = grouped_tasks[task_status]
 
-        # 创建每个状态组的表格
-        status_display = get_status_display(task_status)
-        table = Table(
-            title=f"📋 {status_display} ({len(status_tasks)} 项)",
-            box=box.ROUNDED,
-            show_header=True,
-            header_style="bold magenta",
-        )
-
-        # ID 列使用自适应宽度，可以显示完整的 UUID（Notion）或数字 ID（SQLite）
-        table.add_column("ID", style="cyan", overflow="fold")
-        table.add_column("标题", style="white", no_wrap=False)
-        table.add_column("优先级", width=10)
-        table.add_column("工时", width=8, style="blue")
-        table.add_column("截止日期", width=12)
-        table.add_column("标签", style="magenta")
-
-        for task in status_tasks:
-            # 工时
-            time_str = task.format_time_spent() if task.time_spent > 0 else "-"
-
-            # 截止日期
-            if task.due_date:
-                due_date_str = task.due_date.strftime("%Y-%m-%d")
-                if task.is_overdue():
-                    due_str = Text(due_date_str, style="red")
-                elif task.days_until_due() is not None and task.days_until_due() <= 3:
-                    due_str = Text(due_date_str, style="yellow")
-                else:
-                    due_str = due_date_str
-            else:
-                due_str = "-"
-
-            # 标签
-            tags_str = ", ".join(task.tags) if task.tags else "-"
-
-            # 标题（如果已完成添加删除线）
-            title_text = task.title
-            if task.status == TaskStatus.DONE:
-                title_text = f"[dim strikethrough]{task.title}[/dim strikethrough]"
-
-            table.add_row(
-                str(task.id),
-                title_text,
-                get_priority_display(task.priority),
-                time_str,
-                due_str,
-                tags_str,
+            # 创建每个状态组的表格
+            status_display = get_status_display(task_status)
+            table = Table(
+                title=f"📋 {status_display} ({len(status_tasks)} 项)",
+                box=box.ROUNDED,
+                show_header=True,
+                header_style="bold magenta",
             )
 
-        console.print(table)
-        console.print()  # 在每个状态组之间添加空行
+            # ID 列使用自适应宽度，可以显示完整的 UUID（Notion）或数字 ID（SQLite）
+            table.add_column("ID", style="cyan", overflow="fold")
+            table.add_column("标题", style="white", no_wrap=False)
+            table.add_column("优先级", width=10)
+            table.add_column("工时", width=8, style="blue")
+            table.add_column("截止日期", width=12)
+            table.add_column("标签", style="magenta")
+
+            for task in status_tasks:
+                # 工时
+                time_str = task.format_time_spent() if task.time_spent > 0 else "-"
+
+                # 截止日期
+                if task.due_date:
+                    due_date_str = task.due_date.strftime("%Y-%m-%d")
+                    if task.is_overdue():
+                        due_str = Text(due_date_str, style="red")
+                    elif task.days_until_due() is not None and task.days_until_due() <= 3:
+                        due_str = Text(due_date_str, style="yellow")
+                    else:
+                        due_str = due_date_str
+                else:
+                    due_str = "-"
+
+                # 标签
+                tags_str = ", ".join(task.tags) if task.tags else "-"
+
+                # 标题（如果已完成添加删除线）
+                title_text = task.title
+                if task.status == TaskStatus.DONE:
+                    title_text = f"[dim strikethrough]{task.title}[/dim strikethrough]"
+
+                table.add_row(
+                    str(task.id),
+                    title_text,
+                    get_priority_display(task.priority),
+                    time_str,
+                    due_str,
+                    tags_str,
+                )
+
+            console.print(table)
+            console.print()  # 在每个状态组之间添加空行
 
 
 @cli.command()
