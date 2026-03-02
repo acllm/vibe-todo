@@ -7,9 +7,11 @@
 - 任务建议生成
 - 生产力评分
 """
-import pytest
 from datetime import datetime, timedelta
-from src.vibe_todo.core import Task, TaskStatus, TaskPriority
+
+import pytest
+
+from src.vibe_todo.core import Task, TaskPriority, TaskStatus
 from src.vibe_todo.core.ai_helper import AIHelper, TaskSuggestion, get_ai_helper
 
 
@@ -222,7 +224,7 @@ class TestAIHelper:
 
         # 应该有继续 Vibe Todo 项目的建议
         titles = [s.title for s in suggestions]
-        assert any("Vibe Todo" in t for t in suggestions)
+        assert any("Vibe Todo" in t for t in titles)
 
     def test_productivity_score_basic(self, ai_helper):
         """测试基础生产力分数计算"""

@@ -45,11 +45,12 @@ async def create_task(
     project: str = Form("")
 ):
     """创建新任务"""
-    from ..core import TaskPriority
     from datetime import datetime
-    
+
+    from ..core import TaskPriority
+
     service = get_service()
-    
+
     # 解析截止日期
     due_date_obj = None
     if due_date:
@@ -57,10 +58,10 @@ async def create_task(
             due_date_obj = datetime.strptime(due_date, "%Y-%m-%d")
         except ValueError:
             pass
-    
+
     # 解析标签
     tag_list = [t.strip() for t in tags.split(",")] if tags else []
-    
+
     task = service.create_task(
         title=title,
         description=description,
@@ -119,10 +120,10 @@ async def mark_todo(request: Request, task_id: str):
     """标记任务为待处理（暂停）"""
     service = get_service()
     task = service.get_task(task_id)
-    
+
     if not task:
         raise HTTPException(status_code=404, detail="任务不存在")
-    
+
     from ..core import TaskStatus
     task.status = TaskStatus.TODO
     service.repository.save(task)

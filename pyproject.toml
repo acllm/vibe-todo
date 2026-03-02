@@ -3,7 +3,7 @@ name = "vibe-todo"
 version = "0.3.0"
 description = "A beautiful CLI and Web todo manager with multi-backend support (SQLite, Notion, Microsoft To Do)"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.9"
 license = {text = "MIT"}
 authors = [
     {name = "Vibe Todo Contributors"}
