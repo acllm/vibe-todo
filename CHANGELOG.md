@@ -5,6 +5,49 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2026-03-02
+
+### Added
+
+**视图增强 - 第三阶段（完成！）**
+
+- 完善 `TaskBoardView` 看板视图
+  - 按状态三列布局（待处理、进行中、已完成）
+  - 美观的任务卡片在列中展示
+  - 每个任务卡片包含标题、优先级、项目、截止日期、标签
+  - 任务状态高亮显示
+  - 按优先级排序（紧急 > 高 > 中 > 低）
+  - Rich Table 三列布局，视觉效果出色
+
+### Technical
+
+- 新增 2 个单元测试（看板视图分组逻辑）
+- 总测试用例数：90 个，83 个通过，7 个跳过 ✅
+- v0.3.x 视图增强系列全部完成！
+  - v0.3.0：卡片视图
+  - v0.3.1：时间线视图
+  - v0.3.2：看板视图
+- 保持向后兼容：现有功能不受影响
+
+## [0.3.1] - 2026-03-02
+
+### Added
+
+**视图增强 - 第二阶段**
+
+- 完善 `TaskTimelineView` 时间线视图
+  - 按创建时间自动分组任务
+  - 智能日期标签（今天、昨天、周一、周二...）
+  - 美观的时间线布局（时间标记 + 连接线）
+  - 完整的任务信息展示（状态、优先级、项目、描述、标签）
+  - 按时间倒序排列（最新的在前）
+
+### Technical
+
+- 新增 2 个单元测试（时间线视图分组逻辑）
+- 总测试用例数：88 个，81 个通过，7 个跳过 ✅
+- 保持向后兼容：现有功能不受影响
+
 ## [0.3.0] - 2026-03-02
 
 ### Added

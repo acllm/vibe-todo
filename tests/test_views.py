@@ -107,6 +107,28 @@ class TestTaskTimelineView:
         # 验证包含任务
         for task in sample_tasks:
             assert task.title in result
+    
+    def test_timeline_group_by_date(self, sample_tasks):
+        """测试时间线按日期分组"""
+        view = TaskTimelineView()
+        
+        # 按创建时间分组
+        groups = view._group_tasks_by_date(sample_tasks, 'created_at')
+        
+        # 验证分组
+        assert len(groups) > 0
+        
+        # 每个日期的任务都应该在该组中
+        for date, tasks_in_group in groups.items():
+            for task in tasks_in_group:
+                task_date = task.created_at.date()
+                assert task_date == date
+    
+    def test_timeline_empty_list(self):
+        """测试空列表的时间线视图"""
+        view = TaskTimelineView()
+        result = view.render([])
+        assert "暂无任务" in result or "empty" in result.lower()
 
 
 class TestTaskBoardView:
@@ -130,3 +152,25 @@ class TestTaskBoardView:
         # 验证包含任务
         for task in sample_tasks:
             assert task.title in result
+    
+    def test_board_group_by_status(self, sample_tasks):
+        """测试看板按状态分组"""
+        view = TaskBoardView()
+        
+        # 按状态分组
+        groups = view._group_tasks_by_status(sample_tasks)
+        
+        # 验证有三个状态组
+        assert TaskStatus.TODO in groups
+        assert TaskStatus.IN_PROGRESS in groups
+        assert TaskStatus.DONE in groups
+        
+        # 验证每个任务都在正确的状态组中
+        for task in sample_tasks:
+            assert task in groups[task.status]
+    
+    def test_board_empty_list(self):
+        """测试空列表的看板视图"""
+        view = TaskBoardView()
+        result = view.render([])
+        assert "暂无任务" in result or "empty" in result.lower()
